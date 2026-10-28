@@ -77,10 +77,12 @@ class _HandStripState extends State<HandStrip> {
     if (!mounted || !_scroll.hasClients) return;
     final index = _cards.indexWhere((card) => card.id == id);
     if (index < 0) return;
+    final start = 16 + index * (widget.cardWidth + 10);
+    final visibleStart = _scroll.offset + 8;
+    final visibleEnd = _scroll.offset + _scroll.position.viewportDimension - 8;
+    if (start >= visibleStart && start + widget.cardWidth <= visibleEnd) return;
     final target =
-        (16 +
-                index * (widget.cardWidth + 10) -
-                (_scroll.position.viewportDimension - widget.cardWidth) / 2)
+        (start - (_scroll.position.viewportDimension - widget.cardWidth) / 2)
             .clamp(0.0, _scroll.position.maxScrollExtent);
     if (widget.reduceMotion) {
       _scroll.jumpTo(target);

@@ -124,6 +124,55 @@ void main() {
   }
 
   testWidgets(
+    'selecting a visible card keeps the row still; distant selection scrolls into view',
+    (tester) async {
+      tester.view.physicalSize = const Size(320, 640);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      int? selected;
+      late StateSetter update;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: StatefulBuilder(
+              builder: (context, setState) {
+                update = setState;
+                return Center(
+                  child: HandStrip(
+                    cards: List.generate(
+                      7,
+                      (i) => UnoCard(
+                        id: i + 1,
+                        color: 'red',
+                        kind: 'number',
+                        number: i,
+                      ),
+                    ),
+                    selected: selected,
+                    isPlayable: (_) => true,
+                    onTap: (card) => setState(() => selected = card.id),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+      final before = tester.getRect(cardFinder(3));
+      await tester.tap(cardFinder(3));
+      await tester.pumpAndSettle();
+      expect(tester.getRect(cardFinder(3)).left, before.left);
+      update(() => selected = 7);
+      await tester.pumpAndSettle();
+      final distant = tester.getRect(cardFinder(7));
+      expect(distant.left, greaterThanOrEqualTo(0));
+      expect(distant.right, lessThanOrEqualTo(320));
+      expect(tester.takeException(), null);
+    },
+  );
+
+  testWidgets(
     'the same top card does not replay and outgoing cards cannot be tapped',
     (tester) async {
       var id = 7;
