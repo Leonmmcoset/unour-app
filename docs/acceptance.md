@@ -60,7 +60,11 @@ Android keystore、iOS Team 和签名；开发签名不用于商店发行。
 ## GitHub Actions
 
 工作流仅允许手动触发，Android APK 和 iOS 未签名 IPA 分别上传，保留三天。
-Android 使用开发签名，无需仓库 secrets；iOS 不使用签名证书。此处仅验证
-工作流语法和打包逻辑；创建远程仓库后还需实际运行验证 macOS 构建。
+Android 使用开发签名，无需仓库 secrets；iOS 不使用签名证书。
+
+2026-10-28 已通过[双端构建](https://github.com/Leonmmcoset/unour-app/actions/runs/40711955109)，
+对应提交 `d8379f63aa1a28cbaa57832b2eeecd10b86f451b`。静态检查与 24 项测试通过，
+生成 Android release APK 和 iOS 未签名 IPA。两份 Actions 产物均于 2026-10-31 过期。
+下载的 IPA 已核对 Bundle ID、arm64 架构及主程序无代码签名；真机与真实牌局仍待手动验收。
 
 网络错误退出登录时仍会清除本机凭证；服务端撤销是否成功以响应为准。
