@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../core/models.dart';
+import 'motion.dart';
 
 Color cardColor(String color) => switch (color) {
   'red' => const Color(0xffe74e53),
@@ -15,29 +16,80 @@ Color cardColor(String color) => switch (color) {
 ThemeData partyTheme(Brightness brightness) {
   final dark = brightness == Brightness.dark;
   final scheme = ColorScheme.fromSeed(
-    seedColor: const Color(0xff7653c3),
+    seedColor: const Color(0xff7454cc),
     brightness: brightness,
   );
+  final base = ThemeData(useMaterial3: true, colorScheme: scheme);
   return ThemeData(
     useMaterial3: true,
     colorScheme: scheme,
     scaffoldBackgroundColor: dark
-        ? const Color(0xff191623)
-        : const Color(0xfffff8ed),
-    appBarTheme: const AppBarTheme(
+        ? const Color(0xff17151e)
+        : const Color(0xfffaf8f3),
+    textTheme: base.textTheme.copyWith(
+      displayMedium: base.textTheme.displayMedium?.copyWith(
+        fontWeight: FontWeight.w900,
+        letterSpacing: -1.8,
+      ),
+      headlineMedium: base.textTheme.headlineMedium?.copyWith(
+        fontWeight: FontWeight.w800,
+        letterSpacing: -.8,
+      ),
+      headlineSmall: base.textTheme.headlineSmall?.copyWith(
+        fontWeight: FontWeight.w800,
+        letterSpacing: -.5,
+      ),
+      titleLarge: base.textTheme.titleLarge?.copyWith(
+        fontWeight: FontWeight.w800,
+      ),
+      titleMedium: base.textTheme.titleMedium?.copyWith(
+        fontWeight: FontWeight.w700,
+      ),
+      labelLarge: base.textTheme.labelLarge?.copyWith(
+        fontWeight: FontWeight.w700,
+      ),
+    ),
+    appBarTheme: AppBarTheme(
       backgroundColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
       elevation: 0,
       centerTitle: false,
+      titleTextStyle: TextStyle(
+        color: scheme.onSurface,
+        fontSize: 19,
+        fontWeight: FontWeight.w800,
+      ),
+    ),
+    cardTheme: CardThemeData(
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      color: scheme.surfaceContainerLow,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         minimumSize: const Size(48, 54),
         textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(48, 50),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        side: BorderSide(color: scheme.outlineVariant),
+      ),
+    ),
+    bottomSheetTheme: BottomSheetThemeData(
+      backgroundColor: scheme.surface,
+      surfaceTintColor: Colors.transparent,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
       ),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
+      fillColor: scheme.surfaceContainerLow,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(20),
         borderSide: BorderSide.none,
@@ -45,6 +97,56 @@ ThemeData partyTheme(Brightness brightness) {
       contentPadding: const EdgeInsets.all(18),
     ),
     snackBarTheme: const SnackBarThemeData(behavior: SnackBarBehavior.floating),
+  );
+}
+
+class GamePanel extends StatelessWidget {
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+  final Color? color;
+  const GamePanel({
+    super.key,
+    required this.child,
+    this.padding = const EdgeInsets.all(20),
+    this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: padding,
+    decoration: BoxDecoration(
+      color: color ?? Theme.of(context).colorScheme.surfaceContainerLow,
+      borderRadius: BorderRadius.circular(28),
+      border: Border.all(
+        color: Theme.of(
+          context,
+        ).colorScheme.outlineVariant.withValues(alpha: .45),
+      ),
+    ),
+    child: child,
+  );
+}
+
+class ColorDots extends StatelessWidget {
+  const ColorDots({super.key});
+
+  @override
+  Widget build(BuildContext context) => ExcludeSemantics(
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (final color in ['red', 'blue', 'green', 'yellow'])
+          Container(
+            width: 7,
+            height: 7,
+            margin: const EdgeInsets.only(right: 4),
+            decoration: BoxDecoration(
+              color: cardColor(color),
+              shape: BoxShape.circle,
+            ),
+          ),
+      ],
+    ),
   );
 }
 
@@ -71,50 +173,53 @@ class PlayingCard extends StatelessWidget {
       excludeSemantics: true,
       button: onTap != null,
       selected: selected,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: width,
-          height: width * 1.46,
-          decoration: BoxDecoration(
-            color: background,
-            borderRadius: BorderRadius.circular(width * .15),
-            border: Border.all(
-              color: selected ? const Color(0xffffdf80) : Colors.white,
-              width: selected ? 4 : 3,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: .18),
-                blurRadius: selected ? 16 : 5,
-                offset: const Offset(0, 5),
+      child: PressScale(
+        child: GestureDetector(
+          onTap: onTap,
+          child: AnimatedContainer(
+            duration: GameMotion.duration(context, 240),
+            curve: GameMotion.settle,
+            width: width,
+            height: width * 1.46,
+            decoration: BoxDecoration(
+              color: background,
+              borderRadius: BorderRadius.circular(width * .15),
+              border: Border.all(
+                color: selected ? const Color(0xffffdf80) : Colors.white,
+                width: 3,
               ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(width * .1),
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: CustomPaint(
-                    painter: _CardPainter(card?.isWild ?? false),
-                  ),
+              boxShadow: [
+                BoxShadow(
+                  color: selected
+                      ? background.withValues(alpha: .32)
+                      : Colors.black.withValues(alpha: .12),
+                  blurRadius: selected ? 14 : 6,
+                  offset: Offset(0, selected ? 6 : 3),
                 ),
-                Positioned(
-                  top: 5,
-                  left: 6,
-                  child: Text(
-                    card?.symbol ?? 'U',
-                    style: TextStyle(
-                      fontSize: width * .2,
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(width * .1),
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: CustomPaint(
+                      painter: _CardPainter(card?.isWild ?? false),
                     ),
                   ),
-                ),
-                Center(
-                  child: Transform.rotate(
-                    angle: -.15,
+                  Positioned(
+                    top: 5,
+                    left: 6,
+                    child: Text(
+                      card?.symbol ?? 'U',
+                      style: TextStyle(
+                        fontSize: width * .2,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                  Center(
                     child: FittedBox(
                       child: Padding(
                         padding: const EdgeInsets.all(8),
@@ -130,29 +235,29 @@ class PlayingCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                ),
-                Positioned(
-                  bottom: 5,
-                  right: 6,
-                  child: RotatedBox(
-                    quarterTurns: 2,
-                    child: Text(
-                      card?.symbol ?? 'U',
-                      style: TextStyle(
-                        fontSize: width * .2,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
+                  Positioned(
+                    bottom: 5,
+                    right: 6,
+                    child: RotatedBox(
+                      quarterTurns: 2,
+                      child: Text(
+                        card?.symbol ?? 'U',
+                        style: TextStyle(
+                          fontSize: width * .2,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ),
                   ),
-                ),
-                if (!playable)
-                  Positioned.fill(
-                    child: ColoredBox(
-                      color: Colors.black.withValues(alpha: .26),
+                  if (!playable)
+                    Positioned.fill(
+                      child: ColoredBox(
+                        color: Colors.black.withValues(alpha: .26),
+                      ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -198,48 +303,67 @@ class PartyHero extends StatelessWidget {
   final bool compact;
   const PartyHero({super.key, this.compact = false});
   @override
-  Widget build(BuildContext context) => SizedBox(
-    height: compact ? 140 : 220,
-    child: Center(
-      child: Stack(
-        alignment: Alignment.center,
-        clipBehavior: Clip.none,
-        children: [
-          Transform.translate(
-            offset: const Offset(-54, 9),
-            child: Transform.rotate(
-              angle: -.28,
-              child: PlayingCard(
-                width: compact ? 65 : 90,
-                card: const UnoCard(id: 1, color: 'red', kind: 'reverse'),
-              ),
-            ),
-          ),
-          Transform.translate(
-            offset: const Offset(54, 9),
-            child: Transform.rotate(
-              angle: .28,
-              child: PlayingCard(
-                width: compact ? 65 : 90,
-                card: const UnoCard(
-                  id: 2,
-                  color: 'yellow',
-                  kind: 'number',
-                  number: 7,
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final available = constraints.maxWidth.isFinite
+          ? constraints.maxWidth
+          : 300.0;
+      final width = math.min(compact ? 72.0 : 96.0, available * .32);
+      return SizedBox(
+        height: compact ? 140 : 200,
+        child: Center(
+          child: Stack(
+            alignment: Alignment.center,
+            clipBehavior: Clip.none,
+            children: [
+              MotionEntrance(
+                delay: 40,
+                offset: const Offset(22, 24),
+                child: Transform.translate(
+                  offset: Offset(-width * .65, 8),
+                  child: Transform.rotate(
+                    angle: -.28,
+                    child: PlayingCard(
+                      width: width,
+                      card: const UnoCard(id: 1, color: 'red', kind: 'reverse'),
+                    ),
+                  ),
                 ),
               ),
-            ),
+              MotionEntrance(
+                delay: 110,
+                offset: const Offset(-22, 24),
+                child: Transform.translate(
+                  offset: Offset(width * .65, 8),
+                  child: Transform.rotate(
+                    angle: .28,
+                    child: PlayingCard(
+                      width: width,
+                      card: const UnoCard(
+                        id: 2,
+                        color: 'yellow',
+                        kind: 'number',
+                        number: 7,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              MotionEntrance(
+                delay: 170,
+                child: Transform.rotate(
+                  angle: -.04,
+                  child: PlayingCard(
+                    width: width * 1.08,
+                    card: const UnoCard(id: 3, color: 'blue', kind: 'wild'),
+                  ),
+                ),
+              ),
+            ],
           ),
-          Transform.rotate(
-            angle: -.04,
-            child: PlayingCard(
-              width: compact ? 72 : 100,
-              card: const UnoCard(id: 3, color: 'blue', kind: 'wild'),
-            ),
-          ),
-        ],
-      ),
-    ),
+        ),
+      );
+    },
   );
 }
 

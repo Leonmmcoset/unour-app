@@ -4,17 +4,27 @@ import 'package:go_router/go_router.dart';
 
 import '../core/controller.dart';
 import '../game/design.dart';
+import '../game/motion.dart';
 
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final app = ref.watch(appProvider), user = app.account!;
+    final theme = Theme.of(context), colors = theme.colorScheme;
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Unour',
-          style: TextStyle(fontWeight: FontWeight.w900),
+        title: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Unour',
+              style: TextStyle(fontSize: 25, fontWeight: FontWeight.w900),
+            ),
+            SizedBox(width: 12),
+            ColorDots(),
+          ],
         ),
         actions: [
           IconButton(
@@ -23,90 +33,229 @@ class HomePage extends ConsumerWidget {
             icon: ProfileAvatar(
               name: user.username,
               url: user.avatarUrl,
-              radius: 16,
+              radius: 17,
             ),
           ),
           IconButton(
-            tooltip: '偏好设置',
+            tooltip: '设置',
             onPressed: () => context.push('/settings'),
             icon: const Icon(Icons.tune_rounded),
           ),
           const SizedBox(width: 8),
         ],
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 520),
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
-            children: [
-              const PartyHero(),
-              Text(
-                '${user.username}，来一局？',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w900,
+      body: SafeArea(
+        top: false,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: MotionEntrance(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              user.username,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                color: colors.onSurfaceVariant,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text('来一局？', style: theme.textTheme.headlineMedium),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const Expanded(child: PartyHero(compact: true)),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 24),
-              _GameEntry(
-                title: '人机开局',
-                subtitle: '选择电脑人数和难度',
-                icon: Icons.smart_toy_outlined,
-                color: const Color(0xff397de0),
-                onTap: () => context.push('/setup/solo'),
-              ),
-              const SizedBox(height: 12),
-              _GameEntry(
-                title: '和朋友玩',
-                subtitle: '创建房间，邀请朋友',
-                icon: Icons.celebration_outlined,
-                color: const Color(0xffc75a4d),
-                onTap: () => context.push('/setup/create'),
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: () => context.push('/setup/join'),
-                icon: const Icon(Icons.meeting_room_outlined),
-                label: const Text('输入房间号 · 加入或观战'),
-              ),
-              ErrorStrip(app.error, onDismiss: app.clearError),
-              if (app.room != null) ...[
-                const SizedBox(height: 14),
-                FilledButton.tonalIcon(
-                  onPressed: () => context.push('/room'),
-                  icon: const Icon(Icons.play_arrow_rounded),
-                  label: const Text('回到当前牌桌'),
-                ),
-              ],
-              if (app.recent.isNotEmpty) ...[
-                const SizedBox(height: 24),
-                Text('最近的牌桌', style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: 8),
-                for (final session in app.recent)
-                  Card(
-                    child: ListTile(
-                      leading: const Icon(Icons.style_rounded),
-                      title: Text(session.id),
-                      subtitle: const Text('重新入座，恢复原来的身份'),
-                      onTap: app.busy
-                          ? null
-                          : () async {
-                              final ok = await app.enter(id: session.id);
-                              if (ok && context.mounted) context.push('/room');
-                            },
-                      trailing: IconButton(
-                        tooltip: '从本机记录移除',
-                        onPressed: app.busy
-                            ? null
-                            : () => app.forget(session.id),
-                        icon: const Icon(Icons.close, size: 18),
+                if (app.room != null) ...[
+                  MotionEntrance(
+                    child: Card(
+                      color: colors.secondaryContainer,
+                      child: ListTile(
+                        leading: const Icon(Icons.play_circle_outline_rounded),
+                        title: const Text('回到当前牌桌'),
+                        subtitle: Text(app.room!.id),
+                        trailing: const Icon(Icons.arrow_forward_rounded),
+                        onTap: () => context.push('/room'),
                       ),
                     ),
                   ),
+                  const SizedBox(height: 16),
+                ],
+                MotionEntrance(
+                  delay: 70,
+                  child: PressScale(
+                    child: Material(
+                      color: colors.primary,
+                      borderRadius: BorderRadius.circular(28),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(28),
+                        onTap: () => context.push('/setup/create'),
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: colors.onPrimary.withValues(
+                                    alpha: .14,
+                                  ),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Icon(
+                                  Icons.celebration_outlined,
+                                  size: 30,
+                                  color: colors.onPrimary,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      '和朋友玩',
+                                      style: theme.textTheme.titleLarge
+                                          ?.copyWith(color: colors.onPrimary),
+                                    ),
+                                    const SizedBox(height: 5),
+                                    Text(
+                                      '创建牌桌',
+                                      style: theme.textTheme.bodyMedium
+                                          ?.copyWith(
+                                            color: colors.onPrimary.withValues(
+                                              alpha: .8,
+                                            ),
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Icon(
+                                Icons.arrow_forward_rounded,
+                                color: colors.onPrimary,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: MotionEntrance(
+                        delay: 130,
+                        child: _ModeTile(
+                          title: '人机对战',
+                          subtitle: '选择人数和难度',
+                          icon: Icons.smart_toy_outlined,
+                          accent: cardColor('red'),
+                          onTap: () => context.push('/setup/solo'),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: MotionEntrance(
+                        delay: 190,
+                        child: _ModeTile(
+                          title: '加入牌桌',
+                          subtitle: '输入房间号',
+                          icon: Icons.meeting_room_outlined,
+                          accent: cardColor('blue'),
+                          onTap: () => context.push('/setup/join'),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                ErrorStrip(app.error, onDismiss: app.clearError),
+                if (app.recent.isNotEmpty) ...[
+                  const SizedBox(height: 28),
+                  Row(
+                    children: [
+                      Text('最近的牌桌', style: theme.textTheme.titleMedium),
+                      const Spacer(),
+                      Text(
+                        '${app.recent.length}',
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: colors.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  GamePanel(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Column(
+                      children: [
+                        for (final session in app.recent)
+                          ListTile(
+                            leading: Icon(
+                              Icons.style_outlined,
+                              color: colors.primary,
+                            ),
+                            title: Text(
+                              session.id,
+                              style: theme.textTheme.titleSmall,
+                            ),
+                            subtitle: const Text('重新加入'),
+                            onTap: app.busy
+                                ? null
+                                : () async {
+                                    final ok = await app.enter(id: session.id);
+                                    if (ok && context.mounted) {
+                                      context.push('/room');
+                                    }
+                                  },
+                            trailing: IconButton(
+                              tooltip: '从本机记录移除',
+                              onPressed: app.busy
+                                  ? null
+                                  : () => app.forget(session.id),
+                              icon: const Icon(Icons.close_rounded, size: 18),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.campaign_outlined,
+                      size: 18,
+                      color: colors.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        '剩一张牌时，记得喊 UNO',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colors.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ],
-              const SizedBox(height: 24),
-              const Text('小提示：只剩一张牌时，记得喊 UNO！', textAlign: TextAlign.center),
-            ],
+            ),
           ),
         ),
       ),
@@ -114,52 +263,55 @@ class HomePage extends ConsumerWidget {
   }
 }
 
-class _GameEntry extends StatelessWidget {
+class _ModeTile extends StatelessWidget {
   final String title, subtitle;
   final IconData icon;
-  final Color color;
+  final Color accent;
   final VoidCallback onTap;
-  const _GameEntry({
+  const _ModeTile({
     required this.title,
     required this.subtitle,
     required this.icon,
-    required this.color,
+    required this.accent,
     required this.onTap,
   });
+
   @override
-  Widget build(BuildContext context) => Material(
-    color: color,
-    borderRadius: BorderRadius.circular(26),
-    child: InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(26),
-      child: Padding(
-        padding: const EdgeInsets.all(22),
-        child: Row(
-          children: [
-            Icon(icon, size: 34, color: Colors.white),
-            const SizedBox(width: 18),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                    ),
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return PressScale(
+      child: Material(
+        color: Color.alphaBlend(
+          accent.withValues(alpha: .09),
+          theme.colorScheme.surface,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(26),
+          side: BorderSide(color: accent.withValues(alpha: .16)),
+        ),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(26),
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icon, size: 29, color: accent),
+                const SizedBox(height: 20),
+                Text(title, style: theme.textTheme.titleMedium),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
-                  const SizedBox(height: 4),
-                  Text(subtitle, style: const TextStyle(color: Colors.white)),
-                ],
-              ),
+                ),
+              ],
             ),
-            const Icon(Icons.arrow_forward_rounded, color: Colors.white),
-          ],
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
