@@ -21,7 +21,7 @@ Flutter 编写的竖屏 UNO 派对游戏，面向 Android 与 iOS。默认连接
 ## 手动 GitHub Actions 构建
 
 工作流 `.github/workflows/build-mobile.yml` **只有 `workflow_dispatch`**，不会由
-push、PR 或定时任务触发。以后由你创建远程仓库并推送至默认分支后，进入
+push、PR 或定时任务触发。仓库位于 https://github.com/Leonmmcoset/unour-app，进入
 Actions → 手动构建 Unour → Run workflow，即可并行构建：
 
 - **Unour-Android-APK**：release APK（使用开发签名，正式发行需配置自己的 keystore）。
