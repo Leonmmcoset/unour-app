@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../core/controller.dart';
 import '../game/design.dart';
+import '../game/motion.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -47,97 +48,122 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const PartyHero(compact: true),
-                    Text(
-                      'Unour',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.displayMedium
-                          ?.copyWith(
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -2,
-                          ),
-                    ),
-                    const SizedBox(height: 30),
-                    SegmentedButton<bool>(
-                      segments: const [
-                        ButtonSegment(value: false, label: Text('登录')),
-                        ButtonSegment(value: true, label: Text('注册')),
-                      ],
-                      selected: {_register},
-                      onSelectionChanged: app.busy
-                          ? null
-                          : (v) => setState(() {
-                              _register = v.first;
-                              app.clearError();
-                            }),
-                    ),
-                    const SizedBox(height: 22),
-                    AutofillGroup(
-                      child: Column(
-                        children: [
-                          TextFormField(
-                            controller: _username,
-                            enabled: !app.busy,
-                            autofillHints: const [AutofillHints.username],
-                            textInputAction: TextInputAction.next,
-                            decoration: const InputDecoration(
-                              labelText: '用户名',
-                              prefixIcon: Icon(Icons.face_rounded),
-                            ),
-                            validator: (s) =>
-                                RegExp(
-                                  r'^[\p{Script=Han}A-Za-z0-9_-]{3,24}$',
-                                  unicode: true,
-                                ).hasMatch((s ?? '').trim())
-                                ? null
-                                : '请输入 3–24 个汉字、字母、数字、_ 或 -',
-                          ),
-                          const SizedBox(height: 14),
-                          TextFormField(
-                            controller: _password,
-                            enabled: !app.busy,
-                            obscureText: !_show,
-                            autofillHints: [
-                              _register
-                                  ? AutofillHints.newPassword
-                                  : AutofillHints.password,
-                            ],
-                            onFieldSubmitted: (_) => submit(),
-                            decoration: InputDecoration(
-                              labelText: '密码',
-                              helperText: '8–14 个字符，空格也会保留',
-                              prefixIcon: const Icon(
-                                Icons.lock_outline_rounded,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Unour',
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.displayMedium,
                               ),
-                              suffixIcon: IconButton(
-                                tooltip: _show ? '隐藏密码' : '显示密码',
-                                onPressed: () => setState(() => _show = !_show),
-                                icon: Icon(
-                                  _show
-                                      ? Icons.visibility_off
-                                      : Icons.visibility,
+                              const SizedBox(height: 12),
+                              const ColorDots(),
+                            ],
+                          ),
+                        ),
+                        const Expanded(child: PartyHero(compact: true)),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    MotionEntrance(
+                      delay: 100,
+                      child: GamePanel(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            SegmentedButton<bool>(
+                              segments: const [
+                                ButtonSegment(value: false, label: Text('登录')),
+                                ButtonSegment(value: true, label: Text('注册')),
+                              ],
+                              selected: {_register},
+                              onSelectionChanged: app.busy
+                                  ? null
+                                  : (v) => setState(() {
+                                      _register = v.first;
+                                      app.clearError();
+                                    }),
+                            ),
+                            const SizedBox(height: 22),
+                            AutofillGroup(
+                              child: Column(
+                                children: [
+                                  TextFormField(
+                                    controller: _username,
+                                    enabled: !app.busy,
+                                    autofillHints: const [
+                                      AutofillHints.username,
+                                    ],
+                                    textInputAction: TextInputAction.next,
+                                    decoration: const InputDecoration(
+                                      labelText: '用户名',
+                                      prefixIcon: Icon(Icons.face_rounded),
+                                    ),
+                                    validator: (s) =>
+                                        RegExp(
+                                          r'^[\p{Script=Han}A-Za-z0-9_-]{3,24}$',
+                                          unicode: true,
+                                        ).hasMatch((s ?? '').trim())
+                                        ? null
+                                        : '请输入 3–24 个汉字、字母、数字、_ 或 -',
+                                  ),
+                                  const SizedBox(height: 14),
+                                  TextFormField(
+                                    controller: _password,
+                                    enabled: !app.busy,
+                                    obscureText: !_show,
+                                    autofillHints: [
+                                      _register
+                                          ? AutofillHints.newPassword
+                                          : AutofillHints.password,
+                                    ],
+                                    onFieldSubmitted: (_) => submit(),
+                                    decoration: InputDecoration(
+                                      labelText: '密码',
+                                      helperText: '8–14 个字符，空格也会保留',
+                                      prefixIcon: const Icon(
+                                        Icons.lock_outline_rounded,
+                                      ),
+                                      suffixIcon: IconButton(
+                                        tooltip: _show ? '隐藏密码' : '显示密码',
+                                        onPressed: () =>
+                                            setState(() => _show = !_show),
+                                        icon: Icon(
+                                          _show
+                                              ? Icons.visibility_off
+                                              : Icons.visibility,
+                                        ),
+                                      ),
+                                    ),
+                                    validator: (s) =>
+                                        (s ?? '').runes.length >= 8 &&
+                                            (s ?? '').runes.length <= 14
+                                        ? null
+                                        : '密码需要 8–14 个字符',
+                                  ),
+                                ],
+                              ),
+                            ),
+                            ErrorStrip(app.error, onDismiss: app.clearError),
+                            const SizedBox(height: 12),
+                            PressScale(
+                              child: FilledButton(
+                                onPressed: app.busy ? null : submit,
+                                child: Text(
+                                  app.busy
+                                      ? '正在连接…'
+                                      : _register
+                                      ? '注册'
+                                      : '登录',
                                 ),
                               ),
                             ),
-                            validator: (s) =>
-                                (s ?? '').runes.length >= 8 &&
-                                    (s ?? '').runes.length <= 14
-                                ? null
-                                : '密码需要 8–14 个字符',
-                          ),
-                        ],
-                      ),
-                    ),
-                    ErrorStrip(app.error, onDismiss: app.clearError),
-                    const SizedBox(height: 12),
-                    FilledButton(
-                      onPressed: app.busy ? null : submit,
-                      child: Text(
-                        app.busy
-                            ? '正在连接…'
-                            : _register
-                            ? '注册'
-                            : '登录',
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -194,53 +220,69 @@ class AccountPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('我的玩家卡')),
-      body: ListView(
-        padding: const EdgeInsets.all(24),
-        children: [
-          Center(
-            child: ProfileAvatar(
-              name: user.username,
-              url: user.avatarUrl,
-              radius: 56,
-            ),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              MotionEntrance(
+                child: GamePanel(
+                  padding: const EdgeInsets.all(28),
+                  child: Column(
+                    children: [
+                      Center(
+                        child: ProfileAvatar(
+                          name: user.username,
+                          url: user.avatarUrl,
+                          radius: 56,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        user.username,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.headlineMedium,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              PressScale(
+                child: FilledButton.icon(
+                  onPressed: app.busy ? null : upload,
+                  icon: const Icon(Icons.add_photo_alternate_outlined),
+                  label: const Text('换个头像'),
+                ),
+              ),
+              TextButton(
+                onPressed: app.busy || user.avatarUrl.isEmpty
+                    ? null
+                    : () => app.resetAvatar(),
+                child: const Text('恢复默认头像'),
+              ),
+              ErrorStrip(app.error, onDismiss: app.clearError),
+              const SizedBox(height: 30),
+              OutlinedButton(
+                onPressed: app.busy
+                    ? null
+                    : () async {
+                        if (!await confirm(
+                          context,
+                          '退出登录？',
+                          '关闭应用不会弃权。登录后可通过最近房间恢复牌局。',
+                        )) {
+                          return;
+                        }
+                        final ok = await app.logout();
+                        if (ok && context.mounted) context.go('/');
+                      },
+                child: const Text('退出登录'),
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
-          Text(
-            user.username,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.headlineMedium,
-          ),
-          const SizedBox(height: 30),
-          FilledButton.icon(
-            onPressed: app.busy ? null : upload,
-            icon: const Icon(Icons.add_photo_alternate_outlined),
-            label: const Text('换个头像'),
-          ),
-          TextButton(
-            onPressed: app.busy || user.avatarUrl.isEmpty
-                ? null
-                : () => app.resetAvatar(),
-            child: const Text('恢复默认头像'),
-          ),
-          ErrorStrip(app.error, onDismiss: app.clearError),
-          const SizedBox(height: 30),
-          OutlinedButton(
-            onPressed: app.busy
-                ? null
-                : () async {
-                    if (!await confirm(
-                      context,
-                      '退出登录？',
-                      '关闭应用不会弃权。登录后可通过最近房间恢复牌局。',
-                    )) {
-                      return;
-                    }
-                    final ok = await app.logout();
-                    if (ok && context.mounted) context.go('/');
-                  },
-            child: const Text('退出登录'),
-          ),
-        ],
+        ),
       ),
     );
   }

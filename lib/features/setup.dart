@@ -6,6 +6,7 @@ import '../core/controller.dart';
 import '../core/api.dart';
 import '../core/models.dart';
 import '../game/design.dart';
+import '../game/motion.dart';
 
 class SetupPage extends ConsumerStatefulWidget {
   final String mode;
@@ -92,144 +93,233 @@ class _SetupPageState extends ConsumerState<SetupPage> {
   Widget build(BuildContext context) {
     final app = ref.watch(appProvider);
     final solo = widget.mode == 'solo', join = widget.mode == 'join';
+    final theme = Theme.of(context), colors = theme.colorScheme;
     return Scaffold(
       appBar: AppBar(
         title: Text(
           join
-              ? '加入朋友的牌桌'
+              ? '加入牌桌'
               : solo
               ? '人机对战'
               : '创建牌桌',
         ),
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 540),
-          child: ListView(
-            padding: const EdgeInsets.all(24),
-            children: [
-              if (join) ...[
-                const SizedBox(height: 24),
-                const Icon(Icons.meeting_room_rounded, size: 60),
-                const SizedBox(height: 24),
-                TextField(
-                  controller: _code,
-                  enabled: !app.busy,
-                  decoration: const InputDecoration(
-                    labelText: '房间号',
-                    hintText: '粘贴朋友发来的房间号',
-                  ),
-                  onSubmitted: (_) => _submit(),
-                ),
-                const SizedBox(height: 12),
-                SwitchListTile.adaptive(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('我先观战'),
-                  subtitle: const Text('不占座位，也可以预约下一局'),
-                  value: _spectate,
-                  onChanged: app.busy
-                      ? null
-                      : (v) => setState(() => _spectate = v),
-                ),
-              ] else ...[
-                const PartyHero(compact: true),
-                if (solo) ...[
-                  Text('电脑人数', style: Theme.of(context).textTheme.titleLarge),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Slider(
-                          value: _bots.toDouble(),
-                          min: 1,
-                          max: 9,
-                          divisions: 8,
-                          label: '$_bots 位',
-                          onChanged: app.busy
-                              ? null
-                              : (v) => setState(() => _bots = v.round()),
+      body: SafeArea(
+        top: false,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 540),
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+              children: [
+                MotionEntrance(
+                  child: GamePanel(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: colors.primaryContainer,
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                              child: Icon(
+                                join
+                                    ? Icons.meeting_room_outlined
+                                    : solo
+                                    ? Icons.smart_toy_outlined
+                                    : Icons.celebration_outlined,
+                                color: colors.primary,
+                                size: 26,
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Text(
+                                join
+                                    ? '房间号'
+                                    : solo
+                                    ? '电脑人数'
+                                    : '邀请朋友入座',
+                                style: theme.textTheme.titleMedium,
+                              ),
+                            ),
+                            if (solo)
+                              MotionSwitcher(
+                                child: Text(
+                                  '$_bots',
+                                  key: ValueKey(_bots),
+                                  style: theme.textTheme.headlineMedium
+                                      ?.copyWith(color: colors.primary),
+                                ),
+                              ),
+                          ],
                         ),
+                        const SizedBox(height: 24),
+                        if (join) ...[
+                          TextField(
+                            controller: _code,
+                            enabled: !app.busy,
+                            decoration: const InputDecoration(
+                              labelText: '房间号',
+                              hintText: '粘贴朋友发来的房间号',
+                            ),
+                            onSubmitted: (_) => _submit(),
+                          ),
+                          const SizedBox(height: 12),
+                          SwitchListTile.adaptive(
+                            contentPadding: EdgeInsets.zero,
+                            title: const Text('我先观战'),
+                            subtitle: const Text('也可以预约下一局'),
+                            value: _spectate,
+                            onChanged: app.busy
+                                ? null
+                                : (v) => setState(() => _spectate = v),
+                          ),
+                        ] else if (solo) ...[
+                          Slider(
+                            value: _bots.toDouble(),
+                            min: 1,
+                            max: 9,
+                            divisions: 8,
+                            label: '$_bots 位',
+                            onChanged: app.busy
+                                ? null
+                                : (v) => setState(() => _bots = v.round()),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text('1 位', style: theme.textTheme.labelSmall),
+                                Text('9 位', style: theme.textTheme.labelSmall),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          DropdownButtonFormField<String>(
+                            initialValue: _difficulty,
+                            decoration: const InputDecoration(
+                              labelText: '对手难度',
+                            ),
+                            items: const [
+                              DropdownMenuItem(
+                                value: 'easy',
+                                child: Text('简单'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'normal',
+                                child: Text('标准'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'hard',
+                                child: Text('困难'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'expert',
+                                child: Text('专家'),
+                              ),
+                            ],
+                            onChanged: app.busy
+                                ? null
+                                : (v) => setState(() => _difficulty = v!),
+                          ),
+                        ] else
+                          Text(
+                            '创建后分享房间号，至少两人即可发牌。',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: colors.onSurfaceVariant,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                if (!join) ...[
+                  const SizedBox(height: 16),
+                  MotionEntrance(
+                    delay: 100,
+                    child: GamePanel(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
                       ),
-                      Text('$_bots 位'),
-                    ],
-                  ),
-                  DropdownButtonFormField<String>(
-                    initialValue: _difficulty,
-                    decoration: const InputDecoration(labelText: '对手难度'),
-                    items: const [
-                      DropdownMenuItem(value: 'easy', child: Text('简单')),
-                      DropdownMenuItem(value: 'normal', child: Text('标准')),
-                      DropdownMenuItem(value: 'hard', child: Text('困难')),
-                      DropdownMenuItem(value: 'expert', child: Text('专家')),
-                    ],
-                    onChanged: app.busy
-                        ? null
-                        : (v) => setState(() => _difficulty = v!),
-                  ),
-                  const SizedBox(height: 20),
-                ] else
-                  const Padding(
-                    padding: EdgeInsets.only(bottom: 16),
-                    child: Text('房间号自动生成，开桌后分享给朋友。至少两人即可开始。'),
-                  ),
-                SwitchListTile.adaptive(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('自定义规则'),
-                  subtitle: const Text('叠加、反转、手牌上限等'),
-                  value: _custom,
-                  onChanged: app.busy
-                      ? null
-                      : (v) => setState(() => _custom = v),
-                ),
-                if (_custom) ...[
-                  if (_loading) const LinearProgressIndicator(),
-                  if (_catalogError != null) ...[
-                    ErrorStrip(_catalogError),
-                    TextButton(
-                      onPressed: _loadRules,
-                      child: const Text('重新加载规则'),
+                      child: Column(
+                        children: [
+                          SwitchListTile.adaptive(
+                            contentPadding: EdgeInsets.zero,
+                            title: const Text('自定义规则'),
+                            subtitle: const Text('叠加、反转、手牌上限等'),
+                            value: _custom,
+                            onChanged: app.busy
+                                ? null
+                                : (v) => setState(() => _custom = v),
+                          ),
+                          if (_custom) ...[
+                            const Divider(),
+                            if (_loading) const LinearProgressIndicator(),
+                            if (_catalogError != null) ...[
+                              ErrorStrip(_catalogError),
+                              TextButton(
+                                onPressed: _loadRules,
+                                child: const Text('重新加载规则'),
+                              ),
+                            ],
+                            for (final rule in _rules)
+                              RuleEditor(
+                                rule: rule,
+                                locked: app.busy,
+                                onChanged: () => setState(() {}),
+                              ),
+                          ],
+                        ],
+                      ),
                     ),
-                  ],
-                  for (final rule in _rules)
-                    RuleEditor(
-                      rule: rule,
-                      locked: app.busy,
-                      onChanged: () => setState(() {}),
-                    ),
+                  ),
                 ],
-              ],
-              const SizedBox(height: 24),
-              ErrorStrip(app.error, onDismiss: app.clearError),
-              FilledButton.icon(
-                onPressed:
-                    app.busy || (_custom && (_loading || _catalogError != null))
-                    ? null
-                    : _submit,
-                icon: app.busy
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.play_arrow_rounded),
-                label: Text(
-                  app.busy
-                      ? '正在准备牌桌…'
-                      : join
-                      ? (_spectate ? '观战' : '加入牌桌')
-                      : solo
-                      ? '发牌！'
-                      : '创建牌桌',
-                ),
-              ),
-              if (app.busy)
-                const Padding(
-                  padding: EdgeInsets.only(top: 12),
-                  child: Text(
-                    '如果网络结果不确定，请用最近房间或房间号恢复，避免重复开桌。',
-                    textAlign: TextAlign.center,
+                const SizedBox(height: 24),
+                ErrorStrip(app.error, onDismiss: app.clearError),
+                PressScale(
+                  child: FilledButton.icon(
+                    onPressed:
+                        app.busy ||
+                            (_custom && (_loading || _catalogError != null))
+                        ? null
+                        : _submit,
+                    icon: app.busy
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.play_arrow_rounded),
+                    label: Text(
+                      app.busy
+                          ? '正在准备牌桌…'
+                          : join
+                          ? (_spectate ? '观战' : '加入牌桌')
+                          : solo
+                          ? '发牌！'
+                          : '创建牌桌',
+                    ),
                   ),
                 ),
-            ],
+                if (app.busy)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Text(
+                      '若结果不确定，可通过最近房间或房间号恢复。',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colors.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
