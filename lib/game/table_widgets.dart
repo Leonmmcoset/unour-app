@@ -23,6 +23,7 @@ class OpponentsStrip extends StatefulWidget {
 
 class _OpponentsStripState extends State<OpponentsStrip> {
   final _scroll = ScrollController();
+  double _step = 80;
 
   @override
   void initState() {
@@ -47,14 +48,14 @@ class _OpponentsStripState extends State<OpponentsStrip> {
     final index = opponents.indexWhere((p) => p.id == widget.room.turn);
     if (index < 0) return;
     final target =
-        (12 + index * 148 - (_scroll.position.viewportDimension - 138) / 2)
+        (12 + index * _step - (_scroll.position.viewportDimension - _step) / 2)
             .clamp(0.0, _scroll.position.maxScrollExtent);
     if (GameMotion.reduced(context)) {
       _scroll.jumpTo(target);
     } else {
       _scroll.animateTo(
         target,
-        duration: const Duration(milliseconds: 480),
+        duration: const Duration(milliseconds: 400),
         curve: GameMotion.settle,
       );
     }
@@ -66,107 +67,213 @@ class _OpponentsStripState extends State<OpponentsStrip> {
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _player(BuildContext context, Player player) {
     final room = widget.room;
-    final opponents = room.players.where((p) => p.id != room.you).toList();
+    final current = player.id == room.turn;
+    final inactive = player.eliminated || room.departed.contains(player.id);
     final theme = Theme.of(context), colors = theme.colorScheme;
-    final textExtra =
-        math.max(0.0, MediaQuery.textScalerOf(context).scale(13) - 13) * 2;
-    return SizedBox(
-      height: (widget.compact ? 76 : 88) + textExtra,
-      child: ListView.separated(
-        controller: _scroll,
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(12, 6, 12, 10),
-        itemCount: opponents.length,
-        separatorBuilder: (_, index) => const SizedBox(width: 10),
-        itemBuilder: (context, index) {
-          final player = opponents[index], current = player.id == room.turn;
-          final inactive =
-              player.eliminated || room.departed.contains(player.id);
-          return AnimatedContainer(
-            key: ValueKey(player.id),
-            duration: GameMotion.duration(context, 420),
-            curve: GameMotion.change,
-            width: 138,
-            decoration: BoxDecoration(
-              color: current
-                  ? colors.primaryContainer
-                  : colors.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: current
-                    ? colors.primary
-                    : colors.outlineVariant.withValues(alpha: .6),
-                width: 1.5,
-              ),
-            ),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(20),
-                onTap: widget.onDetails,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  child: Row(
+    final radius = widget.compact ? 18.0 : 23.0;
+    return Semantics(
+      label:
+          '${player.name}，${inactive
+              ? player.eliminated
+                    ? '已淘汰'
+                    : '已离开'
+              : '${player.handCount} 张牌'}${current ? '，正在出牌' : ''}',
+      button: true,
+      onTap: widget.onDetails,
+      excludeSemantics: true,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: widget.onDetails,
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 4),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: radius * 2 + 14,
+                  height: radius * 2 + 12,
+                  child: Stack(
                     children: [
-                      ProfileAvatar(
-                        name: player.name,
-                        radius: 17,
-                        url:
-                            '${object(object(room.raw['profiles'])[player.id])['avatar_url'] ?? ''}',
+                      AnimatedContainer(
+                        duration: GameMotion.duration(context, 350),
+                        curve: GameMotion.settle,
+                        padding: const EdgeInsets.all(3),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: current
+                              ? colors.primaryContainer
+                              : Colors.transparent,
+                          border: Border.all(
+                            width: 1.5,
+                            color: current
+                                ? colors.primary
+                                : Colors.transparent,
+                          ),
+                        ),
+                        child: Opacity(
+                          opacity: inactive ? .45 : 1,
+                          child: ProfileAvatar(
+                            name: player.name,
+                            radius: radius,
+                            url:
+                                '${object(object(room.raw['profiles'])[player.id])['avatar_url'] ?? ''}',
+                          ),
+                        ),
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              player.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.labelLarge?.copyWith(
-                                fontSize: 12,
+                      Positioned(
+                        right: 0,
+                        bottom: 0,
+                        child: AnimatedContainer(
+                          duration: GameMotion.duration(context, 250),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: player.handCount == 1 && !inactive
+                                ? cardColor('red')
+                                : current
+                                ? colors.primary
+                                : colors.inverseSurface,
+                            borderRadius: BorderRadius.circular(7),
+                            border: Border.all(color: colors.surface, width: 2),
+                          ),
+                          child: MotionSwitcher(
+                            child: Text(
+                              inactive ? '–' : '${player.handCount}',
+                              key: ValueKey(player.handCount),
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                height: 1.1,
+                                color:
+                                    current ||
+                                        (player.handCount == 1 && !inactive)
+                                    ? colors.onPrimary
+                                    : colors.onInverseSurface,
                               ),
                             ),
-                            const SizedBox(height: 3),
-                            MotionSwitcher(
-                              child: Text(
-                                player.eliminated
-                                    ? '已淘汰'
-                                    : room.departed.contains(player.id)
-                                    ? '已离开'
-                                    : '${player.handCount} 张${current ? ' · 出牌' : ''}',
-                                key: ValueKey((
-                                  player.handCount,
-                                  current,
-                                  inactive,
-                                )),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                  color: player.handCount == 1 && !inactive
-                                      ? cardColor('red')
-                                      : colors.onSurfaceVariant,
-                                ),
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
+                const SizedBox(height: 5),
+                Text(
+                  player.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    fontWeight: current ? FontWeight.w800 : FontWeight.w500,
+                    color: current ? colors.primary : colors.onSurface,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final opponents = widget.room.players
+        .where((p) => p.id != widget.room.you)
+        .toList();
+    final textExtra =
+        math.max(0.0, MediaQuery.textScalerOf(context).scale(12) - 12) * 2;
+    return SizedBox(
+      key: const ValueKey('opponents'),
+      height: (widget.compact ? 82 : 94) + textExtra,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final slot = widget.compact ? 68.0 : 76.0;
+          _step = slot + 8;
+          if (opponents.length * _step <= constraints.maxWidth - 24) {
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                for (final player in opponents)
+                  SizedBox(
+                    key: ValueKey(player.id),
+                    width: slot,
+                    child: _player(context, player),
+                  ),
+              ],
+            );
+          }
+          return ListView.separated(
+            controller: _scroll,
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            itemCount: opponents.length,
+            separatorBuilder: (_, index) => const SizedBox(width: 8),
+            itemBuilder: (context, index) => SizedBox(
+              width: slot,
+              child: _player(context, opponents[index]),
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class TurnBanner extends StatelessWidget {
+  final Room room;
+  const TurnBanner({super.key, required this.room});
+
+  @override
+  Widget build(BuildContext context) {
+    final mine = room.turn == room.you && !room.isSpectator;
+    final colors = Theme.of(context).colorScheme;
+    final label = room.state['finishing_player'] != null
+        ? '等待最后一张 +4 结算'
+        : mine
+        ? '轮到你出牌'
+        : '等待 ${room.playerName(room.turn)} 出牌';
+    return AnimatedContainer(
+      key: const ValueKey('turn-banner'),
+      duration: GameMotion.duration(context, 350),
+      curve: GameMotion.change,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: mine ? colors.primaryContainer : colors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            mine ? Icons.play_arrow_rounded : Icons.more_horiz_rounded,
+            size: 20,
+            color: mine ? colors.primary : colors.onSurfaceVariant,
+          ),
+          const SizedBox(width: 9),
+          Expanded(
+            child: MotionSwitcher(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                key: ValueKey(label),
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: mine
+                        ? colors.onPrimaryContainer
+                        : colors.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -177,6 +284,7 @@ class TableArena extends StatelessWidget {
   final bool compact;
   final double minHeight;
   final VoidCallback? onDraw, onPlay;
+  final Widget? overlay;
   const TableArena({
     super.key,
     required this.room,
@@ -184,214 +292,192 @@ class TableArena extends StatelessWidget {
     required this.minHeight,
     this.onDraw,
     this.onPlay,
+    this.overlay,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context), colors = theme.colorScheme;
-    final mine = room.turn == room.you && !room.isSpectator;
     final active = cardColor(room.activeColor);
     final pending = integer(room.state['pending_draw']);
-    final finishing = room.state['finishing_player'] != null;
-    final top = room.topCard;
-    return AnimatedContainer(
-      duration: GameMotion.duration(context, 620),
-      curve: GameMotion.change,
-      constraints: BoxConstraints(minHeight: minHeight),
-      decoration: BoxDecoration(
-        color: Color.alphaBlend(active.withValues(alpha: .075), colors.surface),
-        borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: active.withValues(alpha: .18)),
-      ),
-      child: CustomPaint(
-        painter: _TableRings(active.withValues(alpha: .055)),
-        child: Padding(
-          padding: EdgeInsets.all(compact ? 14 : 20),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: MotionSwitcher(
-                        child: Text(
-                          finishing
-                              ? '等待 +4 结算'
-                              : mine
-                              ? '轮到你出牌'
-                              : '${room.playerName(room.turn)} 的回合',
-                          key: ValueKey((room.turn, finishing)),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
+    final direction = integer(room.state['direction'], 1);
+    final width = compact ? 60.0 : 88.0;
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        CustomPaint(
+          painter: _TableRings(active.withValues(alpha: .09)),
+          child: Container(
+            key: const ValueKey('table-arena'),
+            constraints: BoxConstraints(minHeight: minHeight),
+            padding: EdgeInsets.symmetric(
+              horizontal: compact ? 22 : 30,
+              vertical: compact ? 6 : 8,
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    TableTag(
+                      color: active,
+                      label: switch (room.activeColor) {
+                        'red' => '红色',
+                        'blue' => '蓝色',
+                        'green' => '绿色',
+                        'yellow' => '黄色',
+                        _ => '万能',
+                      },
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  TableTag(
-                    color: active,
-                    label: switch (room.activeColor) {
-                      'red' => '红色',
-                      'blue' => '蓝色',
-                      'green' => '绿色',
-                      'yellow' => '黄色',
-                      _ => '万能',
-                    },
-                  ),
-                ],
-              ),
-              SizedBox(height: compact ? 16 : 28),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Column(
-                    children: [
-                      Semantics(
-                        label:
-                            '摸一张，牌堆还有 ${integer(room.state['draw_pile_count'])} 张',
-                        button: onDraw != null,
-                        onTap: onDraw,
-                        excludeSemantics: true,
-                        child: SizedBox(
-                          width: compact ? 64 : 80,
-                          height: (compact ? 56 : 68) * 1.46 + 6,
-                          child: Stack(
-                            alignment: Alignment.topCenter,
-                            children: [
-                              Positioned(
-                                top: 6,
-                                child: _DeckEdge(width: compact ? 56 : 68),
-                              ),
-                              Positioned(
-                                top: 3,
-                                child: _DeckEdge(width: compact ? 56 : 68),
-                              ),
-                              PlayingCard(
-                                width: compact ? 56 : 68,
-                                onTap: onDraw,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 9),
-                      Text(
-                        '牌堆 · ${integer(room.state['draw_pile_count'])}',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: colors.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: compact ? 12 : 22,
-                    ),
-                    child: Column(
+                    Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Tooltip(
-                          message: integer(room.state['direction'], 1) == 1
-                              ? '顺时针出牌'
-                              : '逆时针出牌',
-                          child: AnimatedRotation(
-                            turns: integer(room.state['direction'], 1) == 1
-                                ? 0
-                                : 1,
-                            duration: GameMotion.duration(context, 550),
-                            curve: GameMotion.spring,
-                            child: Icon(
-                              integer(room.state['direction'], 1) == 1
-                                  ? Icons.rotate_right_rounded
-                                  : Icons.rotate_left_rounded,
-                              color: colors.onSurfaceVariant,
-                              size: compact ? 25 : 30,
-                            ),
+                        AnimatedRotation(
+                          turns: direction == 1 ? 0 : 1,
+                          curve: GameMotion.spring,
+                          duration: GameMotion.duration(context, 500),
+                          child: Icon(
+                            direction == 1
+                                ? Icons.rotate_right_rounded
+                                : Icons.rotate_left_rounded,
+                            size: 18,
+                            color: colors.onSurfaceVariant,
                           ),
                         ),
-                        if (pending > 0) ...[
-                          const SizedBox(height: 8),
-                          MotionSwitcher(
-                            child: Text(
-                              '+$pending',
-                              key: ValueKey(pending),
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                color: cardColor('red'),
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
+                        const SizedBox(width: 5),
+                        Text(
+                          direction == 1 ? '顺时针' : '逆时针',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: colors.onSurfaceVariant,
                           ),
-                        ],
+                        ),
                       ],
                     ),
-                  ),
-                  Column(
-                    children: [
-                      AnimatedSwitcher(
-                        duration: GameMotion.duration(context, 460),
-                        reverseDuration: GameMotion.duration(context, 180),
-                        layoutBuilder: (current, previous) => Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            for (final old in previous)
-                              ExcludeSemantics(
-                                child: IgnorePointer(child: old),
-                              ),
-                            if (current != null) current,
-                          ],
-                        ),
-                        transitionBuilder: (child, animation) => FadeTransition(
-                          opacity: animation.drive(
-                            CurveTween(curve: Curves.easeOut),
-                          ),
-                          child: SlideTransition(
-                            position:
-                                Tween(
-                                  begin: const Offset(.16, .28),
-                                  end: Offset.zero,
-                                ).animate(
-                                  animation.drive(
-                                    CurveTween(curve: GameMotion.settle),
-                                  ),
+                  ],
+                ),
+                SizedBox(height: compact ? 8 : 18),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Column(
+                      children: [
+                        Semantics(
+                          label:
+                              '摸一张，牌堆还有 ${integer(room.state['draw_pile_count'])} 张',
+                          button: onDraw != null,
+                          onTap: onDraw,
+                          excludeSemantics: true,
+                          child: SizedBox(
+                            width: width + 10,
+                            height: width * 1.46 + 8,
+                            child: Stack(
+                              alignment: Alignment.topCenter,
+                              children: [
+                                Positioned(
+                                  top: 6,
+                                  child: _DeckEdge(width: width),
                                 ),
-                            child: ScaleTransition(
-                              scale: Tween(begin: .86, end: 1.0).animate(
-                                animation.drive(
-                                  CurveTween(curve: GameMotion.spring),
+                                Positioned(
+                                  top: 3,
+                                  child: _DeckEdge(width: width),
                                 ),
-                              ),
-                              child: child,
+                                PlayingCard(width: width, onTap: onDraw),
+                              ],
                             ),
                           ),
                         ),
-                        child: PlayingCard(
-                          key: ValueKey((room.id, room.round, top?.id)),
-                          card: top,
-                          width: compact ? 70 : 88,
-                          onTap: onPlay,
+                        SizedBox(height: compact ? 8 : 10),
+                        Text(
+                          '牌堆 · ${integer(room.state['draw_pile_count'])}',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: colors.onSurfaceVariant,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 9),
-                      Text(
-                        '当前牌',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: colors.onSurfaceVariant,
+                      ],
+                    ),
+                    SizedBox(width: compact ? 36 : 48),
+                    Column(
+                      children: [
+                        AnimatedSwitcher(
+                          duration: GameMotion.duration(context, 420),
+                          reverseDuration: GameMotion.duration(context, 180),
+                          layoutBuilder: (current, previous) => Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              for (final old in previous)
+                                ExcludeSemantics(
+                                  child: IgnorePointer(child: old),
+                                ),
+                              if (current != null) current,
+                            ],
+                          ),
+                          transitionBuilder: (child, animation) =>
+                              FadeTransition(
+                                opacity: animation.drive(
+                                  CurveTween(curve: Curves.easeOut),
+                                ),
+                                child: SlideTransition(
+                                  position:
+                                      Tween(
+                                        begin: const Offset(.16, .28),
+                                        end: Offset.zero,
+                                      ).animate(
+                                        animation.drive(
+                                          CurveTween(curve: GameMotion.settle),
+                                        ),
+                                      ),
+                                  child: ScaleTransition(
+                                    scale: Tween(begin: .86, end: 1.0).animate(
+                                      animation.drive(
+                                        CurveTween(curve: GameMotion.spring),
+                                      ),
+                                    ),
+                                    child: child,
+                                  ),
+                                ),
+                              ),
+                          child: PlayingCard(
+                            key: ValueKey((
+                              room.id,
+                              room.round,
+                              room.topCard?.id,
+                            )),
+                            card: room.topCard,
+                            width: width,
+                            onTap: onPlay,
+                          ),
                         ),
+                        SizedBox(height: compact ? 8 : 10),
+                        Text(
+                          '当前牌',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: colors.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                SizedBox(height: compact ? 6 : 10),
+                if (pending > 0)
+                  MotionSwitcher(
+                    child: Text(
+                      '罚牌池 +$pending',
+                      key: ValueKey(pending),
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: cardColor('red'),
+                        fontWeight: FontWeight.w800,
                       ),
-                    ],
+                    ),
                   ),
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
         ),
-      ),
+        if (overlay != null) overlay!,
+      ],
     );
   }
 }

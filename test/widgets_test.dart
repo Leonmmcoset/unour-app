@@ -190,7 +190,7 @@ void main() {
         await tester.tap(find.byKey(const ValueKey('hand-card-0')));
         await tester.pumpAndSettle();
         expect(tester.takeException(), null);
-        await tester.tap(find.text('全部手牌'));
+        await tester.tap(find.byTooltip('全部手牌'));
         await tester.pumpAndSettle();
         expect(tester.takeException(), null);
       },
