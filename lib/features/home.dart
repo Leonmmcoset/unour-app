@@ -18,9 +18,13 @@ class HomePage extends ConsumerWidget {
         title: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              'Unour',
-              style: TextStyle(fontSize: 25, fontWeight: FontWeight.w900),
+            Flexible(
+              child: Text(
+                'Unour',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 25, fontWeight: FontWeight.w900),
+              ),
             ),
             SizedBox(width: 12),
             ColorDots(),

@@ -113,23 +113,33 @@ class MotionSwitcher extends StatelessWidget {
   const MotionSwitcher({super.key, required this.child});
 
   @override
-  Widget build(BuildContext context) => AnimatedSwitcher(
-    duration: GameMotion.duration(context, 340),
-    reverseDuration: GameMotion.duration(context, 160),
-    switchInCurve: GameMotion.settle,
-    switchOutCurve: Curves.easeInCubic,
-    transitionBuilder: (child, animation) => FadeTransition(
-      opacity: animation,
-      child: SlideTransition(
-        position: Tween(
-          begin: const Offset(0, .18),
-          end: Offset.zero,
-        ).animate(animation),
-        child: child,
-      ),
-    ),
-    child: child,
-  );
+  Widget build(BuildContext context) => GameMotion.reduced(context)
+      ? child
+      : AnimatedSwitcher(
+          duration: GameMotion.duration(context, 340),
+          reverseDuration: GameMotion.duration(context, 160),
+          switchInCurve: GameMotion.settle,
+          switchOutCurve: Curves.easeInCubic,
+          layoutBuilder: (current, previous) => Stack(
+            alignment: Alignment.center,
+            children: [
+              for (final old in previous)
+                ExcludeSemantics(child: IgnorePointer(child: old)),
+              if (current != null) current,
+            ],
+          ),
+          transitionBuilder: (child, animation) => FadeTransition(
+            opacity: animation,
+            child: SlideTransition(
+              position: Tween(
+                begin: const Offset(0, .18),
+                end: Offset.zero,
+              ).animate(animation),
+              child: child,
+            ),
+          ),
+          child: child,
+        );
 }
 
 /// A finite celebration, so idle screens have no permanent animation ticker.

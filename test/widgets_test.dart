@@ -12,6 +12,8 @@ import 'package:unour/game/design.dart';
 import 'package:unour/game/room_page.dart';
 import 'package:unour/features/account.dart';
 import 'package:unour/features/setup.dart';
+import 'package:unour/features/home.dart';
+import 'package:unour/features/settings.dart';
 
 void main() {
   testWidgets('card has descriptive semantics and selected state', (
@@ -96,9 +98,14 @@ void main() {
     expect(find.text('密码需要 8–14 个字符'), findsOneWidget);
     expect(tester.takeException(), null);
   });
-  for (final dark in [false, true]) {
+  for (final (dark, textScale) in [
+    (false, 1.0),
+    (true, 1.0),
+    (false, 1.6),
+    (true, 1.6),
+  ]) {
     testWidgets(
-      'small portrait table with ten players and many cards (${dark ? 'dark' : 'light'})',
+      'small portrait table with ten players and many cards (${dark ? 'dark' : 'light'}, text $textScale)',
       (tester) async {
         tester.view.physicalSize = const Size(320, 640);
         tester.view.devicePixelRatio = 1;
@@ -161,6 +168,12 @@ void main() {
             ],
             child: MaterialApp(
               theme: partyTheme(dark ? Brightness.dark : Brightness.light),
+              builder: (context, child) => MediaQuery(
+                data: MediaQuery.of(
+                  context,
+                ).copyWith(textScaler: TextScaler.linear(textScale)),
+                child: child!,
+              ),
               home: const RoomPage(),
             ),
           ),
@@ -168,7 +181,67 @@ void main() {
         await tester.pump();
         expect(find.text('我的手牌 · 40 张'), findsOneWidget);
         expect(tester.takeException(), null);
+        if (textScale == 1) {
+          expect(
+            tester.getRect(find.byKey(const ValueKey('play-card'))).bottom,
+            lessThanOrEqualTo(640),
+          );
+        }
+        await tester.tap(find.byKey(const ValueKey('hand-card-0')));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), null);
         await tester.tap(find.text('全部手牌'));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), null);
+      },
+    );
+  }
+  for (final home in [true, false]) {
+    testWidgets(
+      '${home ? 'home with recent rooms' : 'settings'} supports large text on small phones',
+      (tester) async {
+        tester.view.physicalSize = const Size(320, 640);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        SharedPreferences.setMockInitialValues({
+          'sound': false,
+          'haptics': false,
+          'reduce_motion': true,
+        });
+        final prefs = GamePreferences(await SharedPreferences.getInstance());
+        final app =
+            AppController(
+                Api(const FlutterSecureStorage()),
+                GameFeedback(prefs),
+              )
+              ..account = const Account(id: 'me', username: '玩家名字比较长')
+              ..recent = [
+                const RoomSession(
+                  id: 'ROOM1234',
+                  playerId: 'me',
+                  token: 'test',
+                ),
+              ];
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              appProvider.overrideWith((ref) => app),
+              preferencesProvider.overrideWith((ref) => prefs),
+            ],
+            child: MaterialApp(
+              theme: partyTheme(Brightness.light),
+              builder: (context, child) => MediaQuery(
+                data: MediaQuery.of(context).copyWith(
+                  disableAnimations: true,
+                  textScaler: const TextScaler.linear(1.6),
+                ),
+                child: child!,
+              ),
+              home: home ? const HomePage() : const SettingsPage(),
+            ),
+          ),
+        );
         await tester.pumpAndSettle();
         expect(tester.takeException(), null);
       },

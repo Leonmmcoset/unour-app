@@ -8,6 +8,9 @@ import 'package:go_router/go_router.dart';
 import '../core/controller.dart';
 import '../core/models.dart';
 import 'design.dart';
+import 'hand_strip.dart';
+import 'motion.dart';
+import 'table_widgets.dart';
 
 class RoomPage extends ConsumerStatefulWidget {
   const RoomPage({super.key});
@@ -17,6 +20,7 @@ class RoomPage extends ConsumerStatefulWidget {
 
 class _RoomPageState extends ConsumerState<RoomPage> {
   int? _selected;
+  String? _handScope;
   Future<void> _play(UnoCard card) async {
     final app = ref.read(appProvider), room = ref.read(appProvider).room!;
     final plays = room.plays(card);
@@ -50,16 +54,32 @@ class _RoomPageState extends ConsumerState<RoomPage> {
                   runSpacing: 12,
                   alignment: WrapAlignment.center,
                   children: [
-                    for (final value in colors)
-                      FilledButton(
-                        style: FilledButton.styleFrom(
-                          backgroundColor: cardColor(
-                            value == 'keep' ? room.activeColor : value,
+                    for (final (index, value) in colors.indexed)
+                      MotionEntrance(
+                        delay: index * 45,
+                        offset: const Offset(0, 12),
+                        child: PressScale(
+                          child: FilledButton(
+                            style: FilledButton.styleFrom(
+                              backgroundColor: cardColor(
+                                value == 'keep' ? room.activeColor : value,
+                              ),
+                              foregroundColor:
+                                  (value == 'keep'
+                                          ? room.activeColor
+                                          : value) ==
+                                      'yellow'
+                                  ? const Color(0xff553812)
+                                  : Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 18,
+                              ),
+                            ),
+                            onPressed: () => Navigator.pop(context, value),
+                            child: Text(colorName(value)),
                           ),
-                          foregroundColor: Colors.white,
                         ),
-                        onPressed: () => Navigator.pop(context, value),
-                        child: Text(colorName(value)),
                       ),
                   ],
                 ),
@@ -184,106 +204,139 @@ class _RoomPageState extends ConsumerState<RoomPage> {
         ),
       );
     }
-    final reduce =
-        prefs.reduceMotion || MediaQuery.of(context).disableAnimations;
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          tooltip: '返回首页，保留座位',
-          onPressed: () => context.go('/'),
-          icon: const Icon(Icons.arrow_back_rounded),
-        ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '牌桌 ${room.id}',
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+    final scope = '${room.id}:${room.round}';
+    if (_handScope != scope) {
+      _handScope = scope;
+      _selected = null;
+    }
+    final media = MediaQuery.of(context);
+    final reduce = prefs.reduceMotion || media.disableAnimations;
+    final colors = Theme.of(context).colorScheme;
+    return MediaQuery(
+      data: media.copyWith(disableAnimations: reduce),
+      child: Scaffold(
+        appBar: AppBar(
+          toolbarHeight: math.max(
+            60,
+            media.textScaler.scale(16) * 1.25 +
+                media.textScaler.scale(11) * 1.4 +
+                10,
+          ),
+          leading: IconButton(
+            tooltip: '返回首页，保留座位',
+            onPressed: () => context.go('/'),
+            icon: const Icon(Icons.arrow_back_rounded),
+          ),
+          titleSpacing: 0,
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '牌桌 ${room.id}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '第 ${room.round} 局${room.isSpectator ? ' · 观战中' : ''}',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: colors.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            IconButton(
+              tooltip: '复制房间号',
+              onPressed: () => _menu('copy', app),
+              icon: const Icon(Icons.copy_rounded, size: 20),
             ),
-            Text(
-              '第 ${room.round} 局${room.isSpectator ? ' · 观战中' : ''}',
-              style: Theme.of(context).textTheme.labelMedium,
+            PopupMenuButton<String>(
+              tooltip: '牌桌选项',
+              onSelected: (v) => _menu(v, app),
+              itemBuilder: (_) => [
+                const PopupMenuItem(value: 'copy', child: Text('复制房间号')),
+                const PopupMenuItem(value: 'details', child: Text('玩家与规则')),
+                const PopupMenuItem(value: 'settings', child: Text('声音与外观')),
+                const PopupMenuItem(value: 'home', child: Text('返回首页，保留座位')),
+                const PopupMenuItem(value: 'leave', child: Text('退出房间')),
+                if (room.isHost)
+                  const PopupMenuItem(value: 'dissolve', child: Text('解散房间')),
+              ],
             ),
           ],
         ),
-        actions: [
-          PopupMenuButton<String>(
-            tooltip: '牌桌选项',
-            onSelected: (v) => _menu(v, app),
-            itemBuilder: (_) => [
-              const PopupMenuItem(value: 'copy', child: Text('复制房间号')),
-              const PopupMenuItem(value: 'details', child: Text('玩家与规则')),
-              const PopupMenuItem(value: 'settings', child: Text('声音与外观')),
-              const PopupMenuItem(value: 'home', child: Text('返回首页，保留座位')),
-              const PopupMenuItem(value: 'leave', child: Text('退出房间')),
-              if (room.isHost)
-                const PopupMenuItem(value: 'dissolve', child: Text('解散房间')),
-            ],
-          ),
-        ],
-      ),
-      body: SafeArea(
-        top: false,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 620),
-            child: Column(
-              children: [
-                if (!app.online)
-                  Material(
-                    color: Theme.of(context).colorScheme.tertiaryContainer,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 4,
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.wifi_off_rounded, size: 18),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              app.roomUnavailable ? '连接不可用' : '正在重新连接，暂时不能出牌',
+        body: SafeArea(
+          top: false,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 620),
+              child: Column(
+                children: [
+                  if (!app.online)
+                    Material(
+                      color: colors.tertiaryContainer,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.wifi_off_rounded, size: 18),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                app.roomUnavailable ? '连接不可用' : '正在重新连接，暂时不能出牌',
+                              ),
                             ),
-                          ),
-                          TextButton(
-                            onPressed: app.roomUnavailable
-                                ? () => context.go('/')
-                                : app.refresh,
-                            child: Text(app.roomUnavailable ? '回首页' : '重试'),
-                          ),
-                        ],
+                            TextButton(
+                              onPressed: app.roomUnavailable
+                                  ? () => context.go('/')
+                                  : app.refresh,
+                              child: Text(app.roomUnavailable ? '回首页' : '重试'),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                if (app.error != null)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: ErrorStrip(app.error, onDismiss: app.clearError),
-                  ),
-                if (app.notice != null)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 3,
+                  if (app.error != null)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: ErrorStrip(app.error, onDismiss: app.clearError),
                     ),
-                    child: Text(
-                      app.notice!,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.primary,
+                  if (app.notice != null)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+                      child: MotionSwitcher(
+                        child: Text(
+                          app.notice!,
+                          key: ValueKey(app.notice),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: colors.primary,
+                          ),
+                        ),
                       ),
                     ),
+                  Expanded(
+                    child: MotionEntrance(
+                      key: ValueKey('$scope:${room.phase}'),
+                      offset: const Offset(0, 12),
+                      child: room.phase == 'lobby'
+                          ? _lobby(room, app)
+                          : room.phase == 'finished'
+                          ? _finished(room, app)
+                          : _table(room, app, reduce),
+                    ),
                   ),
-                Expanded(
-                  child: room.phase == 'lobby'
-                      ? _lobby(room, app)
-                      : room.phase == 'finished'
-                      ? _finished(room, app)
-                      : _table(room, app, reduce),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -292,7 +345,7 @@ class _RoomPageState extends ConsumerState<RoomPage> {
   }
 
   Widget _lobby(Room room, AppController app) => ListView(
-    padding: const EdgeInsets.all(24),
+    padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
     children: [
       const PartyHero(compact: true),
       Text(
@@ -300,47 +353,63 @@ class _RoomPageState extends ConsumerState<RoomPage> {
         textAlign: TextAlign.center,
         style: Theme.of(context).textTheme.headlineSmall,
       ),
-      const SizedBox(height: 16),
+      const SizedBox(height: 14),
       Center(
         child: ActionChip(
-          avatar: const Icon(Icons.copy, size: 16),
+          avatar: const Icon(Icons.copy_rounded, size: 16),
           label: Text(room.id),
           onPressed: () => _menu('copy', app),
         ),
       ),
-      const SizedBox(height: 16),
-      for (final p in room.players)
-        Card(
-          child: ListTile(
-            leading: ProfileAvatar(
-              name: p.name,
-              url:
-                  '${object(object(room.raw['profiles'])[p.id])['avatar_url'] ?? ''}',
-            ),
-            title: Text('${p.name}${p.id == room.you ? '（我）' : ''}'),
-            trailing: Text(p.id == room.host ? '房主' : '已就位'),
-          ),
+      const SizedBox(height: 24),
+      GamePanel(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Column(
+          children: [
+            for (final p in room.players)
+              ListTile(
+                leading: ProfileAvatar(
+                  name: p.name,
+                  url:
+                      '${object(object(room.raw['profiles'])[p.id])['avatar_url'] ?? ''}',
+                ),
+                title: Text('${p.name}${p.id == room.you ? '（我）' : ''}'),
+                trailing: Text(
+                  p.id == room.host ? '房主' : '已就位',
+                  style: Theme.of(context).textTheme.labelMedium,
+                ),
+              ),
+          ],
         ),
-      const SizedBox(height: 16),
+      ),
+      const SizedBox(height: 20),
       if (room.isSpectator)
-        FilledButton.tonal(
+        FilledButton.tonalIcon(
           onPressed: app.busy
               ? null
               : () => app.action('participation', {'next_round': true}),
-          child: const Text('我也要入座'),
+          icon: const Icon(Icons.event_seat_outlined),
+          label: const Text('加入这一局'),
         ),
       if (room.isHost && !room.isSpectator)
-        FilledButton.icon(
-          onPressed: app.busy || room.players.length < 2
-              ? null
-              : () => app.action('start'),
-          icon: const Icon(Icons.play_arrow_rounded),
-          label: const Text('人齐了，发牌！'),
+        PressScale(
+          child: FilledButton.icon(
+            onPressed: app.busy || room.players.length < 2
+                ? null
+                : () => app.action('start'),
+            icon: const Icon(Icons.play_arrow_rounded),
+            label: const Text('发牌！'),
+          ),
         ),
-      if (!room.isHost) const Text('等待房主发牌', textAlign: TextAlign.center),
-      TextButton(
+      if (!room.isHost)
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 12),
+          child: Text('等待房主发牌', textAlign: TextAlign.center),
+        ),
+      TextButton.icon(
         onPressed: () => _details(room),
-        child: const Text('看看这桌的规则与观众'),
+        icon: const Icon(Icons.info_outline_rounded, size: 18),
+        label: const Text('玩家与规则'),
       ),
     ],
   );
@@ -353,15 +422,33 @@ class _RoomPageState extends ConsumerState<RoomPage> {
     );
     final participant =
         (!room.isSpectator && !room.departed.contains(room.you)) || reserved;
+    final theme = Theme.of(context), colors = theme.colorScheme;
     return ListView(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
       children: [
-        Icon(
-          winner.isEmpty ? Icons.style_rounded : Icons.emoji_events_rounded,
-          size: 84,
-          color: const Color(0xffefb938),
+        SizedBox(
+          height: 148,
+          child: RoundCelebration(
+            key: ValueKey((room.id, room.round, winner)),
+            child: Center(
+              child: Container(
+                width: 92,
+                height: 92,
+                decoration: BoxDecoration(
+                  color: cardColor('yellow').withValues(alpha: .14),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  winner.isEmpty
+                      ? Icons.style_rounded
+                      : Icons.emoji_events_rounded,
+                  size: 52,
+                  color: cardColor('yellow'),
+                ),
+              ),
+            ),
+          ),
         ),
-        const SizedBox(height: 14),
         Text(
           winner.isEmpty
               ? '这一局结束啦'
@@ -369,60 +456,84 @@ class _RoomPageState extends ConsumerState<RoomPage> {
               ? '你赢了！'
               : '${room.playerName(winner)} 赢啦！',
           textAlign: TextAlign.center,
-          style: Theme.of(
-            context,
-          ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900),
+          style: theme.textTheme.headlineMedium,
         ),
         const SizedBox(height: 24),
-        for (final p in room.players)
-          Card(
-            child: ListTile(
-              leading: Icon(
-                p.id == winner
-                    ? Icons.emoji_events_rounded
-                    : Icons.person_outline,
-              ),
-              title: Text('${p.name}${p.id == room.you ? '（我）' : ''}'),
-              subtitle: Text(
-                room.departed.contains(p.id)
-                    ? '已离开'
-                    : p.eliminated
-                    ? '已淘汰'
-                    : '剩余 ${p.handCount} 张',
-              ),
-              trailing: Text(
-                room.departed.contains(p.id)
-                    ? '不参加下局'
-                    : room.votes.contains(p.id) ||
-                          object(room.raw['bots']).containsKey(p.id)
-                    ? '已同意'
-                    : '等待同意',
-              ),
+        GamePanel(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            children: [
+              for (final p in room.players)
+                ListTile(
+                  leading: p.id == winner
+                      ? Icon(
+                          Icons.emoji_events_rounded,
+                          color: cardColor('yellow'),
+                        )
+                      : ProfileAvatar(
+                          name: p.name,
+                          radius: 18,
+                          url:
+                              '${object(object(room.raw['profiles'])[p.id])['avatar_url'] ?? ''}',
+                        ),
+                  title: Text('${p.name}${p.id == room.you ? '（我）' : ''}'),
+                  subtitle: Text(
+                    room.departed.contains(p.id)
+                        ? '已离开'
+                        : p.eliminated
+                        ? '已淘汰'
+                        : '剩余 ${p.handCount} 张',
+                  ),
+                  trailing: Text(
+                    room.departed.contains(p.id)
+                        ? '不参加下局'
+                        : room.votes.contains(p.id) ||
+                              object(room.raw['bots']).containsKey(p.id)
+                        ? '已同意'
+                        : '等待同意',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: colors.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              for (final s in room.spectators.where(
+                (s) => s['next_round'] == true,
+              ))
+                ListTile(
+                  leading: const Icon(Icons.event_seat_outlined),
+                  title: Text('${s['name']}'),
+                  subtitle: const Text('下局入座'),
+                  trailing: Text(
+                    room.votes.contains('${s['id']}') ? '已同意' : '等待同意',
+                    style: theme.textTheme.labelMedium,
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        if (participant)
+          PressScale(
+            child: FilledButton.icon(
+              onPressed: app.busy
+                  ? null
+                  : () => app.action('rematch', {
+                      'agree': !voted,
+                      'round': room.round,
+                      'roster_version': room.rosterVersion,
+                    }),
+              icon: Icon(voted ? Icons.undo_rounded : Icons.replay_rounded),
+              label: Text(voted ? '撤回同意' : '再来一局'),
             ),
           ),
-        for (final s in room.spectators.where((s) => s['next_round'] == true))
-          ListTile(
-            title: Text('${s['name']}'),
-            subtitle: const Text('下局入座'),
-            trailing: Text(room.votes.contains('${s['id']}') ? '已同意' : '等待同意'),
-          ),
-        const SizedBox(height: 16),
-        if (participant)
-          FilledButton(
-            onPressed: app.busy
-                ? null
-                : () => app.action('rematch', {
-                    'agree': !voted,
-                    'round': room.round,
-                    'roster_version': room.rosterVersion,
-                  }),
-            child: Text(voted ? '撤回同意' : '再来一局'),
-          ),
         if (room.isSpectator) _reservation(room, app),
-        const SizedBox(height: 8),
-        const Text(
-          '所有仍参赛的真人与预约玩家同意后，自动发牌。名单变化时需要重新同意。',
+        const SizedBox(height: 12),
+        Text(
+          '全员同意后自动发牌；名单变化时需重新同意。',
           textAlign: TextAlign.center,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: colors.onSurfaceVariant,
+          ),
         ),
         TextButton(
           onPressed: () => _menu('leave', app),
@@ -446,194 +557,52 @@ class _RoomPageState extends ConsumerState<RoomPage> {
   }
 
   Widget _table(Room room, AppController app, bool reduce) {
-    final opponents = room.players.where((p) => p.id != room.you).toList();
     final hand = room.me?.hand ?? <UnoCard>[];
-    final selected = hand.where((c) => c.id == _selected).firstOrNull;
-    final mine = room.turn == room.you && !room.isSpectator;
+    final selected = hand.where((card) => card.id == _selected).firstOrNull;
     final enabled = !app.busy && app.online && !app.roomUnavailable;
     return LayoutBuilder(
       builder: (context, constraints) {
-        final compact = constraints.maxHeight < 550;
+        final compact =
+            constraints.maxHeight < 680 || constraints.maxWidth < 350;
+        final reservedHeight = room.isSpectator
+            ? 110
+            : compact
+            ? 268
+            : 294;
+        final arenaHeight =
+            (constraints.maxHeight - (compact ? 76 : 88) - reservedHeight - 24)
+                .clamp(compact ? 208.0 : 268.0, compact ? 256.0 : 340.0);
         return SingleChildScrollView(
-          physics: const ClampingScrollPhysics(),
           child: ConstrainedBox(
             constraints: BoxConstraints(minHeight: constraints.maxHeight),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                SizedBox(
-                  height: compact ? 88 : 112,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    itemCount: opponents.length,
-                    separatorBuilder: (_, index) => const SizedBox(width: 10),
-                    itemBuilder: (context, index) {
-                      final p = opponents[index], current = p.id == room.turn;
-                      return AnimatedContainer(
-                        duration: Duration(milliseconds: reduce ? 0 : 200),
-                        width: 88,
-                        decoration: BoxDecoration(
-                          color: current
-                              ? Theme.of(context).colorScheme.primaryContainer
-                              : Theme.of(context).colorScheme.surfaceContainer,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: current
-                                ? Theme.of(context).colorScheme.primary
-                                : Colors.transparent,
-                            width: 2,
-                          ),
-                        ),
-                        padding: const EdgeInsets.all(6),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            if (!compact)
-                              ProfileAvatar(
-                                name: p.name,
-                                radius: 16,
-                                url:
-                                    '${object(object(room.raw['profiles'])[p.id])['avatar_url'] ?? ''}',
-                              ),
-                            Text(
-                              p.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            Text(
-                              p.eliminated
-                                  ? '已淘汰'
-                                  : room.departed.contains(p.id)
-                                  ? '已离开'
-                                  : '${p.handCount} 张',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w900,
-                                color: p.handCount == 1
-                                    ? cardColor('red')
-                                    : null,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
+                OpponentsStrip(
+                  room: room,
+                  compact: compact,
+                  onDetails: () => _details(room),
                 ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 6,
-                  ),
-                  child: Column(
-                    children: [
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 4,
-                        alignment: WrapAlignment.center,
-                        children: [
-                          Chip(
-                            avatar: Icon(
-                              integer(room.state['direction'], 1) == 1
-                                  ? Icons.rotate_right
-                                  : Icons.rotate_left,
-                              size: 18,
-                            ),
-                            label: const Text('出牌方向'),
-                          ),
-                          Chip(
-                            avatar: Icon(
-                              Icons.circle,
-                              color: cardColor(room.activeColor),
-                              size: 16,
-                            ),
-                            label: Text(colorName(room.activeColor)),
-                          ),
-                          if (integer(room.state['pending_draw']) > 0)
-                            Chip(
-                              label: Text('罚牌池 +${room.state['pending_draw']}'),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        room.state['finishing_player'] != null
-                            ? '等待最后一张 +4 结算'
-                            : mine
-                            ? '轮到你出牌'
-                            : '等待 ${room.playerName(room.turn)} 出牌',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Column(
-                            children: [
-                              PlayingCard(
-                                width: compact ? 64 : 80,
-                                onTap: enabled && room.allows('draw')
-                                    ? () => app.action('draw')
-                                    : null,
-                                playable: room.allows('draw'),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                '牌堆 ${integer(room.state['draw_pile_count'])}',
-                              ),
-                            ],
-                          ),
-                          const SizedBox(width: 38),
-                          Column(
-                            children: [
-                              AnimatedSwitcher(
-                                duration: Duration(
-                                  milliseconds: reduce ? 0 : 230,
-                                ),
-                                transitionBuilder: (child, animation) =>
-                                    ScaleTransition(
-                                      scale: animation,
-                                      child: FadeTransition(
-                                        opacity: animation,
-                                        child: child,
-                                      ),
-                                    ),
-                                child: PlayingCard(
-                                  key: ValueKey(room.topCard?.id),
-                                  card: room.topCard,
-                                  width: compact ? 72 : 88,
-                                  onTap:
-                                      selected != null &&
-                                          enabled &&
-                                          room.plays(selected).isNotEmpty
-                                      ? () => _play(selected)
-                                      : null,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              const Text('当前出牌'),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ],
+                  padding: const EdgeInsets.fromLTRB(12, 2, 12, 12),
+                  child: TableArena(
+                    room: room,
+                    compact: compact,
+                    minHeight: arenaHeight,
+                    onDraw: enabled && room.allows('draw')
+                        ? () => app.action('draw')
+                        : null,
+                    onPlay:
+                        selected != null &&
+                            enabled &&
+                            room.plays(selected).isNotEmpty
+                        ? () => _play(selected)
+                        : null,
                   ),
                 ),
                 if (room.isSpectator)
                   Padding(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
                     child: Column(
                       children: [
                         const Text('正在观战'),
@@ -643,176 +612,7 @@ class _RoomPageState extends ConsumerState<RoomPage> {
                     ),
                   )
                 else
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (app.unoAvailable || app.unoSending)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 4,
-                          ),
-                          child: Column(
-                            children: [
-                              FilledButton.icon(
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: cardColor('red'),
-                                  foregroundColor: Colors.white,
-                                  minimumSize: const Size(double.infinity, 52),
-                                ),
-                                onPressed: app.unoAvailable
-                                    ? app.declareUno
-                                    : null,
-                                icon: const Icon(Icons.campaign_rounded),
-                                label: Text(
-                                  app.unoSending ? '正在喊 UNO…' : 'UNO！就剩一张！',
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              LinearProgressIndicator(
-                                value: app.unoProgress,
-                                color: cardColor('red'),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                            ],
-                          ),
-                        ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                room.me?.eliminated == true
-                                    ? '你已淘汰，继续观战吧'
-                                    : '我的手牌 · ${hand.length} 张',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                            TextButton(
-                              onPressed: hand.isEmpty
-                                  ? null
-                                  : () => _showHand(hand),
-                              child: const Text('全部手牌'),
-                            ),
-                          ],
-                        ),
-                      ),
-                      SizedBox(
-                        height: compact ? 128 : 156,
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.fromLTRB(24, 18, 24, 8),
-                          itemCount: hand.length,
-                          itemBuilder: (context, i) {
-                            final card = hand[i], active = card.id == _selected;
-                            final playable = room.plays(card).isNotEmpty;
-                            final tilt = ((i % 5) - 2) * .025;
-                            return SizedBox(
-                              width: compact ? 53 : 60,
-                              child: OverflowBox(
-                                maxWidth: compact ? 68 : 78,
-                                alignment: Alignment.centerLeft,
-                                child: AnimatedContainer(
-                                  duration: Duration(
-                                    milliseconds: reduce ? 0 : 170,
-                                  ),
-                                  transform: Matrix4.translationValues(
-                                    0,
-                                    active ? -14 : 0,
-                                    0,
-                                  ),
-                                  child: Transform.rotate(
-                                    angle: active ? 0 : tilt,
-                                    child: PlayingCard(
-                                      card: card,
-                                      width: active
-                                          ? (compact ? 72 : 84)
-                                          : (compact ? 66 : 76),
-                                      selected: active,
-                                      playable: playable || !mine,
-                                      onTap: () {
-                                        if (active && playable && enabled) {
-                                          _play(card);
-                                        } else {
-                                          setState(() => _selected = card.id);
-                                        }
-                                      },
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                        child: Column(
-                          children: [
-                            if (selected != null)
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 6),
-                                child: Text(
-                                  '${selected.label}${room.plays(selected).isEmpty ? ' · 当前不能出这张牌' : ' · 再点一次出牌'}',
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              alignment: WrapAlignment.center,
-                              children: [
-                                FilledButton(
-                                  onPressed:
-                                      selected != null &&
-                                          enabled &&
-                                          room.plays(selected).isNotEmpty
-                                      ? () => _play(selected)
-                                      : null,
-                                  child: const Text('出牌'),
-                                ),
-                                FilledButton.tonal(
-                                  onPressed: enabled && room.allows('draw')
-                                      ? () => app.action('draw')
-                                      : null,
-                                  child: Text(
-                                    integer(room.state['pending_draw']) > 0
-                                        ? '承受 +${room.state['pending_draw']}'
-                                        : '摸一张',
-                                  ),
-                                ),
-                                if (room.allows('pass'))
-                                  OutlinedButton(
-                                    onPressed: enabled
-                                        ? () => app.action('pass')
-                                        : null,
-                                    child: const Text('不出，过'),
-                                  ),
-                                if (room.allows('challenge'))
-                                  OutlinedButton(
-                                    onPressed: enabled
-                                        ? () async {
-                                            if (await confirm(
-                                              context,
-                                              '质疑这张 +4？',
-                                              '若对方出牌前持有当前颜色，质疑成功；失败则按本桌规则承担额外罚牌。',
-                                            )) {
-                                              app.action('challenge');
-                                            }
-                                          }
-                                        : null,
-                                    child: const Text('质疑 +4'),
-                                  ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                  _handPanel(room, app, compact, reduce),
               ],
             ),
           ),
@@ -821,36 +621,271 @@ class _RoomPageState extends ConsumerState<RoomPage> {
     );
   }
 
-  void _showHand(List<UnoCard> hand) {
+  Widget _handPanel(Room room, AppController app, bool compact, bool reduce) {
+    final hand = room.me?.hand ?? <UnoCard>[];
+    final selected = hand.where((card) => card.id == _selected).firstOrNull;
+    final mine = room.turn == room.you;
+    final enabled = !app.busy && app.online && !app.roomUnavailable;
+    final canPlay =
+        selected != null && enabled && room.plays(selected).isNotEmpty;
+    final colors = Theme.of(context).colorScheme;
+    final hint = Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Text(
+        selected != null
+            ? '${selected.label} · ${room.plays(selected).isEmpty ? '当前不能出' : '再点一次出牌'}'
+            : mine
+            ? '轻点选牌，再点一次出牌'
+            : '可先选牌，等待你的回合',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: 12,
+          color: canPlay ? colors.primary : colors.onSurfaceVariant,
+        ),
+      ),
+    );
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+      child: GamePanel(
+        padding: EdgeInsets.zero,
+        color: colors.surface,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (app.unoAvailable || app.unoSending)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
+                child: MotionEntrance(
+                  offset: const Offset(0, 8),
+                  child: Column(
+                    children: [
+                      PressScale(
+                        child: FilledButton.icon(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: cardColor('red'),
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size(double.infinity, 50),
+                          ),
+                          onPressed: app.unoAvailable ? app.declareUno : null,
+                          icon: const Icon(Icons.campaign_rounded),
+                          label: Text(app.unoSending ? '正在喊 UNO…' : 'UNO！'),
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      LinearProgressIndicator(
+                        value: app.unoProgress,
+                        color: cardColor('red'),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 8, 0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: MotionSwitcher(
+                      child: Align(
+                        key: ValueKey((hand.length, room.me?.eliminated)),
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          room.me?.eliminated == true
+                              ? '已淘汰 · 继续观战'
+                              : '我的手牌 · ${hand.length} 张',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: hand.isEmpty ? null : _showHand,
+                    style: TextButton.styleFrom(
+                      textStyle: Theme.of(context).textTheme.labelMedium,
+                      minimumSize: const Size(48, 40),
+                    ),
+                    icon: const Icon(Icons.grid_view_rounded, size: 15),
+                    label: const Text('全部手牌'),
+                  ),
+                ],
+              ),
+            ),
+            HandStrip(
+              key: ValueKey(_handScope),
+              cards: hand,
+              selected: _selected,
+              cardWidth: compact ? 70 : 82,
+              reduceMotion: reduce,
+              dimUnavailable: mine,
+              isPlayable: (card) => room.plays(card).isNotEmpty,
+              onTap: (card) {
+                if (_selected == card.id &&
+                    enabled &&
+                    room.plays(card).isNotEmpty) {
+                  _play(card);
+                } else {
+                  setState(() => _selected = card.id);
+                }
+              },
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+              child: Column(
+                children: [
+                  if (reduce)
+                    hint
+                  else
+                    AnimatedSize(
+                      duration: const Duration(milliseconds: 240),
+                      curve: GameMotion.settle,
+                      child: hint,
+                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: PressScale(
+                          child: FilledButton.icon(
+                            key: const ValueKey('play-card'),
+                            onPressed: canPlay ? () => _play(selected) : null,
+                            style: FilledButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 12,
+                              ),
+                            ),
+                            icon: const Icon(
+                              Icons.north_east_rounded,
+                              size: 19,
+                            ),
+                            label: const Text('出牌'),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: PressScale(
+                          child: FilledButton.tonalIcon(
+                            style: FilledButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 12,
+                              ),
+                            ),
+                            onPressed: enabled && room.allows('draw')
+                                ? () => app.action('draw')
+                                : null,
+                            icon: const Icon(Icons.add_rounded, size: 19),
+                            label: Text(
+                              integer(room.state['pending_draw']) > 0
+                                  ? '摸 ${room.state['pending_draw']} 张'
+                                  : '摸一张',
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (room.allows('pass') || room.allows('challenge')) ...[
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 6,
+                      alignment: WrapAlignment.center,
+                      children: [
+                        if (room.allows('pass'))
+                          TextButton.icon(
+                            onPressed: enabled
+                                ? () => app.action('pass')
+                                : null,
+                            icon: const Icon(Icons.skip_next_rounded, size: 18),
+                            label: const Text('过牌'),
+                          ),
+                        if (room.allows('challenge'))
+                          TextButton.icon(
+                            onPressed: enabled
+                                ? () async {
+                                    if (await confirm(
+                                      context,
+                                      '质疑这张 +4？',
+                                      '若对方出牌前持有当前颜色，质疑成功；失败则按本桌规则承担额外罚牌。',
+                                    )) {
+                                      app.action('challenge');
+                                    }
+                                  }
+                                : null,
+                            icon: const Icon(
+                              Icons.help_outline_rounded,
+                              size: 18,
+                            ),
+                            label: const Text('质疑 +4'),
+                          ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showHand() {
     showModalBottomSheet(
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
       builder: (context) => DraggableScrollableSheet(
         expand: false,
-        initialChildSize: .7,
-        builder: (context, scroll) => GridView.builder(
-          controller: scroll,
-          padding: const EdgeInsets.all(20),
-          itemCount: hand.length,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: math.max(
-              3,
-              (MediaQuery.sizeOf(context).width / 100).floor(),
-            ),
-            childAspectRatio: .67,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-          ),
-          itemBuilder: (context, index) => FittedBox(
-            child: PlayingCard(
-              card: hand[index],
-              onTap: () {
-                setState(() => _selected = hand[index].id);
-                Navigator.pop(context);
-              },
-            ),
-          ),
+        initialChildSize: .72,
+        builder: (context, scroll) => Consumer(
+          builder: (context, ref, child) {
+            final hand = ref.watch(appProvider).room?.me?.hand ?? <UnoCard>[];
+            return CustomScrollView(
+              controller: scroll,
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+                    child: Text(
+                      '全部手牌 · ${hand.length} 张',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                  ),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                  sliver: SliverGrid.builder(
+                    itemCount: hand.length,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: math.max(
+                        3,
+                        (MediaQuery.sizeOf(context).width / 104).floor(),
+                      ),
+                      childAspectRatio: .67,
+                      crossAxisSpacing: 14,
+                      mainAxisSpacing: 14,
+                    ),
+                    itemBuilder: (context, index) => FittedBox(
+                      child: PlayingCard(
+                        card: hand[index],
+                        selected: hand[index].id == _selected,
+                        onTap: () {
+                          setState(() => _selected = hand[index].id);
+                          Navigator.pop(context);
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );

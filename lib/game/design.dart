@@ -18,7 +18,7 @@ ThemeData partyTheme(Brightness brightness) {
   final scheme = ColorScheme.fromSeed(
     seedColor: const Color(0xff7454cc),
     brightness: brightness,
-  );
+  ).copyWith(primary: dark ? const Color(0xffc8b6ff) : const Color(0xff7250ca));
   final base = ThemeData(useMaterial3: true, colorScheme: scheme);
   return ThemeData(
     useMaterial3: true,
@@ -89,10 +89,20 @@ ThemeData partyTheme(Brightness brightness) {
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: scheme.surfaceContainerLow,
+      fillColor: scheme.surface,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(20),
         borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(18),
+        borderSide: BorderSide(
+          color: scheme.outlineVariant.withValues(alpha: .65),
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(18),
+        borderSide: BorderSide(color: scheme.primary, width: 1.5),
       ),
       contentPadding: const EdgeInsets.all(18),
     ),
@@ -112,18 +122,18 @@ class GamePanel extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: padding,
-    decoration: BoxDecoration(
-      color: color ?? Theme.of(context).colorScheme.surfaceContainerLow,
+  Widget build(BuildContext context) => Material(
+    color: color ?? Theme.of(context).colorScheme.surfaceContainerLow,
+    clipBehavior: Clip.antiAlias,
+    shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(28),
-      border: Border.all(
+      side: BorderSide(
         color: Theme.of(
           context,
         ).colorScheme.outlineVariant.withValues(alpha: .45),
       ),
     ),
-    child: child,
+    child: Padding(padding: padding, child: child),
   );
 }
 
@@ -172,6 +182,7 @@ class PlayingCard extends StatelessWidget {
       label: card?.label ?? '背面纸牌',
       excludeSemantics: true,
       button: onTap != null,
+      onTap: onTap,
       selected: selected,
       child: PressScale(
         child: GestureDetector(
@@ -210,27 +221,24 @@ class PlayingCard extends StatelessWidget {
                   Positioned(
                     top: 5,
                     left: 6,
-                    child: Text(
-                      card?.symbol ?? 'U',
-                      style: TextStyle(
-                        fontSize: width * .2,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
-                      ),
+                    child: _CardSymbol(
+                      card: card,
+                      size: width * .2,
+                      color: card?.color == 'yellow'
+                          ? const Color(0xff684713)
+                          : Colors.white,
                     ),
                   ),
                   Center(
                     child: FittedBox(
                       child: Padding(
                         padding: const EdgeInsets.all(8),
-                        child: Text(
-                          card?.symbol ?? 'U',
-                          style: TextStyle(
-                            fontSize: width * .57,
-                            height: 1,
-                            color: background,
-                            fontWeight: FontWeight.w900,
-                          ),
+                        child: _CardSymbol(
+                          card: card,
+                          size: width * .57,
+                          color: card?.color == 'yellow'
+                              ? const Color(0xff946214)
+                              : background,
                         ),
                       ),
                     ),
@@ -240,20 +248,19 @@ class PlayingCard extends StatelessWidget {
                     right: 6,
                     child: RotatedBox(
                       quarterTurns: 2,
-                      child: Text(
-                        card?.symbol ?? 'U',
-                        style: TextStyle(
-                          fontSize: width * .2,
-                          color: Colors.white,
-                          fontWeight: FontWeight.w900,
-                        ),
+                      child: _CardSymbol(
+                        card: card,
+                        size: width * .2,
+                        color: card?.color == 'yellow'
+                            ? const Color(0xff684713)
+                            : Colors.white,
                       ),
                     ),
                   ),
                   if (!playable)
                     Positioned.fill(
                       child: ColoredBox(
-                        color: Colors.black.withValues(alpha: .26),
+                        color: Colors.black.withValues(alpha: .18),
                       ),
                     ),
                 ],
@@ -263,6 +270,38 @@ class PlayingCard extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _CardSymbol extends StatelessWidget {
+  final UnoCard? card;
+  final double size;
+  final Color color;
+  const _CardSymbol({
+    required this.card,
+    required this.size,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final icon = switch (card?.kind) {
+      'reverse' => Icons.sync_alt_rounded,
+      'skip' => Icons.block_rounded,
+      'wild' => Icons.auto_awesome_rounded,
+      _ => null,
+    };
+    return icon != null
+        ? Icon(icon, size: size, color: color)
+        : Text(
+            card?.symbol ?? 'U',
+            style: TextStyle(
+              fontSize: size,
+              height: 1,
+              color: color,
+              fontWeight: FontWeight.w900,
+            ),
+          );
   }
 }
 
@@ -431,7 +470,7 @@ class ProfileAvatar extends StatelessWidget {
       child: resolved.isEmpty
           ? Text(
               name.characters.firstOrNull ?? '?',
-              style: TextStyle(
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontSize: radius * .8,
                 fontWeight: FontWeight.w800,
               ),
