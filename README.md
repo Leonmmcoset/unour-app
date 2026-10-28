@@ -17,3 +17,16 @@ Flutter 编写的竖屏 UNO 派对游戏，面向 Android 与 iOS。默认连接
 后端提供的接口说明保存在 `docs/backend-api.md`。
 
 包名 / Bundle ID：`chat.csac.unour`。Logo 与正式发行签名待配置。
+
+## 手动 GitHub Actions 构建
+
+工作流 `.github/workflows/build-mobile.yml` **只有 `workflow_dispatch`**，不会由
+push、PR 或定时任务触发。以后由你创建远程仓库并推送至默认分支后，进入
+Actions → 手动构建 Unour → Run workflow，即可并行构建：
+
+- **Unour-Android-APK**：release APK（使用开发签名，正式发行需配置自己的 keystore）。
+- **Unour-iOS-Unsigned-IPA**：无签名 `Unour-unsigned.ipa`，需自行签名后安装。
+
+两份产物位于该次运行的 Artifacts，均在 **3 天后过期**。工作流不需要苹果证书、
+描述文件或签名密钥，不会创建 Release 或自动发布。固定 Flutter 3.47.8，使用官方
+Flutter Git 源码安装；GitHub 官方 Actions 固定到提交版本。

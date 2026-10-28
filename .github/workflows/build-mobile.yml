@@ -1,0 +1,72 @@
+name: 手动构建 Unour
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  FLUTTER_VERSION: '3.47.8'
+  API_BASE_URL: 'https://csac.chat/'
+
+jobs:
+  android:
+    name: Android APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: 检出项目
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: 安装 Java 17
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: 安装固定版本 Flutter
+        run: bash scripts/setup-flutter-ci.sh
+      - name: 安装依赖
+        run: flutter --no-version-check pub get --enforce-lockfile
+      - name: 静态检查与测试
+        run: |
+          dart format --output=none --set-exit-if-changed lib test
+          flutter --no-version-check analyze
+          flutter --no-version-check test
+      - name: 编译 APK
+        run: flutter --no-version-check build apk --release --dart-define=API_BASE_URL="$API_BASE_URL"
+      - name: 上传 Android APK（保留 3 天）
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: Unour-Android-APK
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+          retention-days: 3
+          compression-level: 0
+
+  ios:
+    name: iOS 未签名 IPA
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - name: 检出项目
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: 安装固定版本 Flutter
+        run: bash scripts/setup-flutter-ci.sh
+      - name: 安装依赖
+        run: flutter --no-version-check pub get --enforce-lockfile
+      - name: 编译未签名 iOS 应用
+        run: flutter --no-version-check build ios --release --no-codesign --dart-define=API_BASE_URL="$API_BASE_URL"
+      - name: 打包未签名 IPA
+        run: bash scripts/package-unsigned-ipa.sh
+      - name: 上传 iOS IPA（保留 3 天）
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: Unour-iOS-Unsigned-IPA
+          path: build/ios/ipa/Unour-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 3
+          compression-level: 0
