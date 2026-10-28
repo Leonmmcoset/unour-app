@@ -15,52 +15,53 @@ const cards = [
 Finder cardFinder(int id) => find.byKey(ValueKey('hand-card-$id'));
 
 void main() {
-  testWidgets('hand cards never overlap or resize when selected', (
-    tester,
-  ) async {
-    int? selected;
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: partyTheme(Brightness.light),
-        home: Scaffold(
-          body: StatefulBuilder(
-            builder: (context, setState) => Center(
-              child: HandStrip(
-                cards: cards,
-                selected: selected,
-                isPlayable: (_) => true,
-                onTap: (card) => setState(() => selected = card.id),
+  testWidgets(
+    'hand cards share a straight fixed step and never resize when selected',
+    (tester) async {
+      int? selected;
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: partyTheme(Brightness.light),
+          home: Scaffold(
+            body: StatefulBuilder(
+              builder: (context, setState) => Center(
+                child: HandStrip(
+                  cards: cards,
+                  selected: selected,
+                  isPlayable: (_) => true,
+                  onTap: (card) => setState(() => selected = card.id),
+                ),
               ),
             ),
           ),
         ),
-      ),
-    );
-    final original = [
-      for (final card in cards) tester.getRect(cardFinder(card.id)),
-    ];
-    for (var i = 1; i < original.length; i++) {
-      expect(original[i].top, original.first.top);
-      expect(original[i].width, original.first.width);
-      expect(original[i].left - original[i - 1].right, closeTo(10, .01));
-    }
-    await tester.tap(cardFinder(2));
-    await tester.pumpAndSettle();
-    final clip = tester.getRect(
-      find.ancestor(of: cardFinder(2), matching: find.byType(ClipRect)).first,
-    );
-    expect(tester.getRect(cardFinder(2)).top, greaterThanOrEqualTo(clip.top));
-    for (var i = 0; i < cards.length; i++) {
-      final after = tester.getRect(cardFinder(cards[i].id));
-      expect(after.width, original[i].width);
-      expect(after.left, original[i].left);
-      expect(
-        after.top,
-        cards[i].id == 2 ? lessThan(original[i].top) : original[i].top,
       );
-    }
-    expect(tester.takeException(), null);
-  });
+      final original = [
+        for (final card in cards) tester.getRect(cardFinder(card.id)),
+      ];
+      final step = original[1].left - original[0].left;
+      expect(step, greaterThanOrEqualTo(44));
+      for (var i = 1; i < original.length; i++) {
+        expect(original[i].top, original.first.top);
+        expect(original[i].width, original.first.width);
+        expect(original[i].left - original[i - 1].left, closeTo(step, .01));
+      }
+      await tester.tap(cardFinder(2));
+      await tester.pumpAndSettle();
+      final clip = tester.getRect(find.byType(HandStrip));
+      expect(tester.getRect(cardFinder(2)).top, greaterThanOrEqualTo(clip.top));
+      for (var i = 0; i < cards.length; i++) {
+        final after = tester.getRect(cardFinder(cards[i].id));
+        expect(after.width, original[i].width);
+        expect(after.left, original[i].left);
+        expect(
+          after.top,
+          cards[i].id == 2 ? lessThan(original[i].top) : original[i].top,
+        );
+      }
+      expect(tester.takeException(), null);
+    },
+  );
 
   for (final reduce in [false, true]) {
     testWidgets(
@@ -141,7 +142,7 @@ void main() {
                 return Center(
                   child: HandStrip(
                     cards: List.generate(
-                      7,
+                      12,
                       (i) => UnoCard(
                         id: i + 1,
                         color: 'red',
@@ -163,11 +164,80 @@ void main() {
       await tester.tap(cardFinder(3));
       await tester.pumpAndSettle();
       expect(tester.getRect(cardFinder(3)).left, before.left);
-      update(() => selected = 7);
+      update(() => selected = 12);
       await tester.pumpAndSettle();
-      final distant = tester.getRect(cardFinder(7));
+      final distant = tester.getRect(cardFinder(12));
       expect(distant.left, greaterThanOrEqualTo(0));
       expect(distant.right, lessThanOrEqualTo(320));
+      expect(tester.takeException(), null);
+    },
+  );
+
+  testWidgets(
+    'seven cards fit a phone; sorting groups colors and preserves selection',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      const hand = [
+        UnoCard(id: 10, color: 'blue', kind: 'number', number: 2),
+        UnoCard(id: 11, color: 'red', kind: 'number', number: 7),
+        UnoCard(id: 12, color: 'yellow', kind: 'number', number: 1),
+        UnoCard(id: 13, color: 'wild', kind: 'wild_draw_four'),
+        UnoCard(id: 14, color: 'green', kind: 'reverse'),
+        UnoCard(id: 15, color: 'red', kind: 'number', number: 2),
+        UnoCard(id: 16, color: 'blue', kind: 'number', number: 4),
+      ];
+      var sorted = false;
+      int? selected;
+      late StateSetter update;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: StatefulBuilder(
+              builder: (context, setState) {
+                update = setState;
+                return Center(
+                  child: HandStrip(
+                    cards: hand,
+                    selected: selected,
+                    sorted: sorted,
+                    isPlayable: (_) => true,
+                    onTap: (card) => setState(() => selected = card.id),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+      expect(tester.getRect(cardFinder(10)).left, greaterThanOrEqualTo(0));
+      expect(tester.getRect(cardFinder(16)).right, lessThanOrEqualTo(390));
+      await tester.tapAt(
+        tester.getTopLeft(cardFinder(11)) + const Offset(12, 24),
+      );
+      await tester.pumpAndSettle();
+      expect(selected, 11);
+      final before = tester.getRect(cardFinder(11));
+      update(() => sorted = true);
+      await tester.pumpAndSettle();
+      final order = [15, 11, 12, 14, 10, 16, 13];
+      for (var i = 1; i < order.length; i++) {
+        expect(
+          tester.getRect(cardFinder(order[i])).left,
+          greaterThan(tester.getRect(cardFinder(order[i - 1])).left),
+        );
+      }
+      expect(selected, 11);
+      expect(tester.getRect(cardFinder(11)).size, before.size);
+      update(() => sorted = false);
+      await tester.pumpAndSettle();
+      expect(
+        tester.getRect(cardFinder(10)).left,
+        lessThan(tester.getRect(cardFinder(11)).left),
+      );
+      expect(tester.binding.hasScheduledFrame, isFalse);
       expect(tester.takeException(), null);
     },
   );
@@ -234,6 +304,53 @@ void main() {
       expect(tester.binding.hasScheduledFrame, isFalse);
     },
   );
+
+  for (final system in [false, true]) {
+    testWidgets(
+      'enabling ${system ? 'system' : 'app'} reduced motion settles an active hand change',
+      (tester) async {
+        var hand = List.of(cards);
+        var reduce = false;
+        late StateSetter update;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: StatefulBuilder(
+              builder: (context, setState) {
+                update = setState;
+                return MediaQuery(
+                  data: MediaQueryData(disableAnimations: system && reduce),
+                  child: Scaffold(
+                    body: Center(
+                      child: HandStrip(
+                        cards: hand,
+                        selected: null,
+                        reduceMotion: !system && reduce,
+                        isPlayable: (_) => true,
+                        onTap: (_) {},
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+        update(() => hand = [cards[1], cards[2]]);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 80));
+        expect(cardFinder(1), findsOneWidget);
+        expect(tester.binding.hasScheduledFrame, isTrue);
+        update(() => reduce = true);
+        await tester.pump();
+        expect(cardFinder(1), findsNothing);
+        final settled = tester.getRect(cardFinder(2));
+        await tester.pump();
+        expect(tester.getRect(cardFinder(2)), settled);
+        expect(tester.binding.hasScheduledFrame, isFalse);
+        expect(tester.takeException(), null);
+      },
+    );
+  }
 
   testWidgets('reduced motion immediately settles entrance and celebration', (
     tester,
