@@ -1,5 +1,5 @@
 name: unour
-description: 和朋友一起玩的竖屏 UNO 纸牌派对。
+description: Android 和 iOS 竖屏 UNO 游戏。
 publish_to: none
 version: 1.0.0+1
 environment:

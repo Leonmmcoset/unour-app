@@ -296,7 +296,7 @@ class _RoomPageState extends ConsumerState<RoomPage> {
     children: [
       const PartyHero(compact: true),
       Text(
-        '朋友入座，好戏开场',
+        '等待玩家加入',
         textAlign: TextAlign.center,
         style: Theme.of(context).textTheme.headlineSmall,
       ),
@@ -337,8 +337,7 @@ class _RoomPageState extends ConsumerState<RoomPage> {
           icon: const Icon(Icons.play_arrow_rounded),
           label: const Text('人齐了，发牌！'),
         ),
-      if (!room.isHost)
-        const Text('等房主发牌，先和朋友打个招呼吧。', textAlign: TextAlign.center),
+      if (!room.isHost) const Text('等待房主发牌', textAlign: TextAlign.center),
       TextButton(
         onPressed: () => _details(room),
         child: const Text('看看这桌的规则与观众'),
@@ -367,15 +366,13 @@ class _RoomPageState extends ConsumerState<RoomPage> {
           winner.isEmpty
               ? '这一局结束啦'
               : won
-              ? '好牌，好手气！'
+              ? '你赢了！'
               : '${room.playerName(winner)} 赢啦！',
           textAlign: TextAlign.center,
           style: Theme.of(
             context,
           ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900),
         ),
-        const SizedBox(height: 8),
-        const Text('输赢都尽兴，再来一局？', textAlign: TextAlign.center),
         const SizedBox(height: 24),
         for (final p in room.players)
           Card(
@@ -419,7 +416,7 @@ class _RoomPageState extends ConsumerState<RoomPage> {
                     'round': room.round,
                     'roster_version': room.rosterVersion,
                   }),
-            child: Text(voted ? '撤回同意' : '再来一局，我准备好了'),
+            child: Text(voted ? '撤回同意' : '再来一局'),
           ),
         if (room.isSpectator) _reservation(room, app),
         const SizedBox(height: 8),
@@ -429,7 +426,7 @@ class _RoomPageState extends ConsumerState<RoomPage> {
         ),
         TextButton(
           onPressed: () => _menu('leave', app),
-          child: const Text('尽兴了，离开牌桌'),
+          child: const Text('离开牌桌'),
         ),
       ],
     );
@@ -570,7 +567,7 @@ class _RoomPageState extends ConsumerState<RoomPage> {
                         room.state['finishing_player'] != null
                             ? '等待最后一张 +4 结算'
                             : mine
-                            ? '轮到你，让好牌上桌'
+                            ? '轮到你出牌'
                             : '等待 ${room.playerName(room.turn)} 出牌',
                         textAlign: TextAlign.center,
                         style: const TextStyle(
@@ -639,7 +636,7 @@ class _RoomPageState extends ConsumerState<RoomPage> {
                     padding: const EdgeInsets.all(20),
                     child: Column(
                       children: [
-                        const Text('你在观战席，看看朋友们的精彩操作。'),
+                        const Text('正在观战'),
                         const SizedBox(height: 12),
                         _reservation(room, app),
                       ],

@@ -42,17 +42,15 @@ class HomePage extends ConsumerWidget {
             children: [
               const PartyHero(),
               Text(
-                '今天，轮到你啦。',
+                '${user.username}，来一局？',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.w900,
                 ),
               ),
-              const SizedBox(height: 8),
-              Text('${user.username}，来一局轻松的纸牌派对。'),
               const SizedBox(height: 24),
               _GameEntry(
                 title: '人机开局',
-                subtitle: '随时练手 · 四种难度',
+                subtitle: '选择电脑人数和难度',
                 icon: Icons.smart_toy_outlined,
                 color: const Color(0xff397de0),
                 onTap: () => context.push('/setup/solo'),
@@ -60,7 +58,7 @@ class HomePage extends ConsumerWidget {
               const SizedBox(height: 12),
               _GameEntry(
                 title: '和朋友玩',
-                subtitle: '开张牌桌，等朋友入座',
+                subtitle: '创建房间，邀请朋友',
                 icon: Icons.celebration_outlined,
                 color: const Color(0xffc75a4d),
                 onTap: () => context.push('/setup/create'),

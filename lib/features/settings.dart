@@ -9,11 +9,11 @@ class SettingsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final prefs = ref.watch(preferencesProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('舒服地玩')),
+      appBar: AppBar(title: const Text('设置')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const ListTile(title: Text('外观'), subtitle: Text('四色纸牌始终保持清晰鲜明')),
+          const ListTile(title: Text('外观')),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: SegmentedButton<ThemeMode>(
@@ -49,7 +49,6 @@ class SettingsPage extends ConsumerWidget {
           const ListTile(
             leading: Icon(Icons.favorite_outline),
             title: Text('Unour · 1.0.0'),
-            subtitle: Text('好朋友，好手气。'),
           ),
         ],
       ),

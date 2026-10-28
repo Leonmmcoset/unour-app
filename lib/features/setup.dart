@@ -98,8 +98,8 @@ class _SetupPageState extends ConsumerState<SetupPage> {
           join
               ? '加入朋友的牌桌'
               : solo
-              ? '先来练练手'
-              : '开一桌，等朋友',
+              ? '人机对战'
+              : '创建牌桌',
         ),
       ),
       body: Center(
@@ -134,10 +134,7 @@ class _SetupPageState extends ConsumerState<SetupPage> {
               ] else ...[
                 const PartyHero(compact: true),
                 if (solo) ...[
-                  Text(
-                    '选几位电脑朋友？',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
+                  Text('电脑人数', style: Theme.of(context).textTheme.titleLarge),
                   Row(
                     children: [
                       Expanded(
@@ -159,16 +156,10 @@ class _SetupPageState extends ConsumerState<SetupPage> {
                     initialValue: _difficulty,
                     decoration: const InputDecoration(labelText: '对手难度'),
                     items: const [
-                      DropdownMenuItem(value: 'easy', child: Text('简单 · 轻松上手')),
-                      DropdownMenuItem(
-                        value: 'normal',
-                        child: Text('标准 · 来点挑战'),
-                      ),
-                      DropdownMenuItem(value: 'hard', child: Text('困难 · 认真对局')),
-                      DropdownMenuItem(
-                        value: 'expert',
-                        child: Text('专家 · 全力以赴'),
-                      ),
+                      DropdownMenuItem(value: 'easy', child: Text('简单')),
+                      DropdownMenuItem(value: 'normal', child: Text('标准')),
+                      DropdownMenuItem(value: 'hard', child: Text('困难')),
+                      DropdownMenuItem(value: 'expert', child: Text('专家')),
                     ],
                     onChanged: app.busy
                         ? null
@@ -182,8 +173,8 @@ class _SetupPageState extends ConsumerState<SetupPage> {
                   ),
                 SwitchListTile.adaptive(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('加点自己的规则'),
-                  subtitle: const Text('叠加、反转、手牌上限……你来定'),
+                  title: const Text('自定义规则'),
+                  subtitle: const Text('叠加、反转、手牌上限等'),
                   value: _custom,
                   onChanged: app.busy
                       ? null
@@ -224,9 +215,9 @@ class _SetupPageState extends ConsumerState<SetupPage> {
                   app.busy
                       ? '正在准备牌桌…'
                       : join
-                      ? (_spectate ? '进去看看' : '入座，准备开玩')
+                      ? (_spectate ? '观战' : '加入牌桌')
                       : solo
-                      ? '发牌，开玩！'
+                      ? '发牌！'
                       : '创建牌桌',
                 ),
               ),

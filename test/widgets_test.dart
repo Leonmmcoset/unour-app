@@ -88,8 +88,9 @@ void main() {
         ),
       ),
     );
-    await tester.ensureVisible(find.text('登录，回到牌桌'));
-    await tester.tap(find.text('登录，回到牌桌'));
+    final loginButton = find.widgetWithText(FilledButton, '登录');
+    await tester.ensureVisible(loginButton);
+    await tester.tap(loginButton);
     await tester.pumpAndSettle();
     expect(find.text('Unour'), findsOneWidget);
     expect(find.text('密码需要 8–14 个字符'), findsOneWidget);

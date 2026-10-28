@@ -1,6 +1,6 @@
 # Unour
 
-Flutter 编写的竖屏 UNO 派对游戏，面向 Android 与 iOS。默认连接 https://csac.chat/。
+Flutter 编写的竖屏 UNO 游戏，支持 Android 和 iOS。默认连接 https://csac.chat/。
 
 ## 开发
 

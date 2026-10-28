@@ -57,12 +57,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             letterSpacing: -2,
                           ),
                     ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      '好朋友，好手气。',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 18),
-                    ),
                     const SizedBox(height: 30),
                     SegmentedButton<bool>(
                       segments: const [
@@ -140,16 +134,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       onPressed: app.busy ? null : submit,
                       child: Text(
                         app.busy
-                            ? '稍等，正在连接…'
+                            ? '正在连接…'
                             : _register
-                            ? '注册，准备开玩'
-                            : '登录，回到牌桌',
+                            ? '注册'
+                            : '登录',
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      '登录后即可人机练手，或邀请朋友一起玩。',
-                      textAlign: TextAlign.center,
                     ),
                   ],
                 ),
