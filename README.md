@@ -2,6 +2,8 @@
 
 Flutter 编写的竖屏 UNO 游戏，支持 Android 和 iOS。默认连接 https://csac.chat/。
 
+[界面与动效预览](docs/ui.md)
+
 ## 开发
 
 使用 Flutter stable，执行 `flutter pub get`、`flutter run`。可通过
