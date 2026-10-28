@@ -71,4 +71,8 @@ Android 使用开发签名，无需仓库 secrets；iOS 不使用签名证书。
 生成 Android release APK 和 iOS 未签名 IPA。两份 Actions 产物均于 2026-10-31 过期。
 下载的 IPA 已核对 Bundle ID、arm64 架构及主程序无代码签名；真机与真实牌局仍待手动验收。
 
+同日 UI 改版提交 `a1ec399e32ff0229f541a120192e176861f65638` 的静态检查与 34 项测试
+已通过，Android release APK 已生成。新版双端产物及 iOS 状态见
+[本次手动构建](https://github.com/Leonmmcoset/unour-app/actions/runs/40722603832)。
+
 网络错误退出登录时仍会清除本机凭证；服务端撤销是否成功以响应为准。
