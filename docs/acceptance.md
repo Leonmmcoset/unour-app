@@ -110,4 +110,8 @@ Android 使用开发签名，无需仓库 secrets；iOS 不使用签名证书。
 APK 与包含实时活动扩展的未签名 IPA 保留至 2026-11-01（UTC）。
 新功能预览和记录边界见 [本机记录](local-history.md)。
 
+新手引导提交 `7972ad5` 已通过静态检查和 87 项测试，
+[双端手动构建](https://github.com/Leonmmcoset/unour-app/actions/runs/40877447037)已成功，
+APK 与未签名 IPA 保留至 2026-11-01（UTC）。预览和教学边界见 [新手引导](tutorial.md)。
+
 网络错误退出登录时仍会清除本机凭证；服务端撤销是否成功以响应为准。
