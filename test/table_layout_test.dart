@@ -11,6 +11,7 @@ import 'package:unour/core/preferences.dart';
 import 'package:unour/game/design.dart';
 import 'package:unour/game/hand_strip.dart';
 import 'package:unour/game/room_page.dart';
+import 'package:unour/game/table_widgets.dart';
 
 class LayoutController extends AppController {
   LayoutController(GamePreferences prefs)
@@ -102,6 +103,40 @@ Future<LayoutController> mountTable(
 }
 
 void main() {
+  for (final size in [const Size(320, 640), const Size(390, 844)]) {
+    testWidgets('deck and current card match in size and alignment at $size', (
+      tester,
+    ) async {
+      await mountTable(tester, size: size);
+      final arena = find.byType(TableArena);
+      final deck = tester.getRect(
+        find.descendant(
+          of: arena,
+          matching: find.byWidgetPredicate(
+            (widget) => widget is PlayingCard && widget.card == null,
+          ),
+        ),
+      );
+      final current = tester.getRect(
+        find.descendant(
+          of: arena,
+          matching: find.byWidgetPredicate(
+            (widget) => widget is PlayingCard && widget.card?.id == 99,
+          ),
+        ),
+      );
+      expect(deck.size, current.size);
+      expect(deck.top, current.top);
+      expect(deck.bottom, current.bottom);
+      final deckLabel = tester.getRect(find.text('牌堆 · 60'));
+      final currentLabel = tester.getRect(find.text('当前牌'));
+      expect(deckLabel.top, currentLabel.top);
+      expect(deckLabel.center.dx, closeTo(deck.center.dx, .01));
+      expect(currentLabel.center.dx, closeTo(current.center.dx, .01));
+      expect(tester.takeException(), null);
+    });
+  }
+
   testWidgets(
     'players, piles, turn and hand form one vertical table with seven visible cards',
     (tester) async {

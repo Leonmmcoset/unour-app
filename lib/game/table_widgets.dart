@@ -359,104 +359,91 @@ class TableArena extends StatelessWidget {
                 SizedBox(height: compact ? 8 : 18),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Column(
-                      children: [
-                        Semantics(
-                          label:
-                              '摸一张，牌堆还有 ${integer(room.state['draw_pile_count'])} 张',
-                          button: onDraw != null,
-                          onTap: onDraw,
-                          excludeSemantics: true,
-                          child: SizedBox(
-                            width: width + 10,
-                            height: width * 1.46 + 8,
-                            child: Stack(
-                              alignment: Alignment.topCenter,
-                              children: [
-                                Positioned(
-                                  top: 6,
-                                  child: _DeckEdge(width: width),
+                    _TablePile(
+                      width: width,
+                      compact: compact,
+                      label: '牌堆 · ${integer(room.state['draw_pile_count'])}',
+                      child: Semantics(
+                        label:
+                            '摸一张，牌堆还有 ${integer(room.state['draw_pile_count'])} 张',
+                        button: onDraw != null,
+                        onTap: onDraw,
+                        excludeSemantics: true,
+                        child: SizedBox(
+                          width: width,
+                          height: width * 1.46 + 8,
+                          child: Stack(
+                            alignment: Alignment.topCenter,
+                            children: [
+                              Positioned(
+                                top: 6,
+                                child: _DeckEdge(width: width),
+                              ),
+                              Positioned(
+                                top: 3,
+                                child: _DeckEdge(width: width),
+                              ),
+                              PlayingCard(width: width, onTap: onDraw),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: compact ? 36 : 48),
+                    _TablePile(
+                      width: width,
+                      compact: compact,
+                      label: '当前牌',
+                      child: AnimatedSwitcher(
+                        duration: GameMotion.duration(context, 420),
+                        reverseDuration: GameMotion.duration(context, 180),
+                        layoutBuilder: (current, previous) => Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            for (final old in previous)
+                              ExcludeSemantics(
+                                child: IgnorePointer(child: old),
+                              ),
+                            if (current != null) current,
+                          ],
+                        ),
+                        transitionBuilder: (child, animation) => FadeTransition(
+                          opacity: animation.drive(
+                            CurveTween(curve: Curves.easeOut),
+                          ),
+                          child: SlideTransition(
+                            position:
+                                Tween(
+                                  begin: const Offset(.16, .28),
+                                  end: Offset.zero,
+                                ).animate(
+                                  animation.drive(
+                                    CurveTween(curve: GameMotion.settle),
+                                  ),
                                 ),
-                                Positioned(
-                                  top: 3,
-                                  child: _DeckEdge(width: width),
+                            child: ScaleTransition(
+                              scale: Tween(begin: .86, end: 1.0).animate(
+                                animation.drive(
+                                  CurveTween(curve: GameMotion.spring),
                                 ),
-                                PlayingCard(width: width, onTap: onDraw),
-                              ],
+                              ),
+                              child: child,
                             ),
                           ),
                         ),
-                        SizedBox(height: compact ? 8 : 10),
-                        Text(
-                          '牌堆 · ${integer(room.state['draw_pile_count'])}',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: colors.onSurfaceVariant,
-                          ),
+                        child: PlayingCard(
+                          key: ValueKey((
+                            room.id,
+                            room.round,
+                            room.topCard?.id,
+                          )),
+                          card: room.topCard,
+                          width: width,
+                          onTap: onPlay,
                         ),
-                      ],
-                    ),
-                    SizedBox(width: compact ? 36 : 48),
-                    Column(
-                      children: [
-                        AnimatedSwitcher(
-                          duration: GameMotion.duration(context, 420),
-                          reverseDuration: GameMotion.duration(context, 180),
-                          layoutBuilder: (current, previous) => Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              for (final old in previous)
-                                ExcludeSemantics(
-                                  child: IgnorePointer(child: old),
-                                ),
-                              if (current != null) current,
-                            ],
-                          ),
-                          transitionBuilder: (child, animation) =>
-                              FadeTransition(
-                                opacity: animation.drive(
-                                  CurveTween(curve: Curves.easeOut),
-                                ),
-                                child: SlideTransition(
-                                  position:
-                                      Tween(
-                                        begin: const Offset(.16, .28),
-                                        end: Offset.zero,
-                                      ).animate(
-                                        animation.drive(
-                                          CurveTween(curve: GameMotion.settle),
-                                        ),
-                                      ),
-                                  child: ScaleTransition(
-                                    scale: Tween(begin: .86, end: 1.0).animate(
-                                      animation.drive(
-                                        CurveTween(curve: GameMotion.spring),
-                                      ),
-                                    ),
-                                    child: child,
-                                  ),
-                                ),
-                              ),
-                          child: PlayingCard(
-                            key: ValueKey((
-                              room.id,
-                              room.round,
-                              room.topCard?.id,
-                            )),
-                            card: room.topCard,
-                            width: width,
-                            onTap: onPlay,
-                          ),
-                        ),
-                        SizedBox(height: compact ? 8 : 10),
-                        Text(
-                          '当前牌',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: colors.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ],
                 ),
@@ -480,6 +467,38 @@ class TableArena extends StatelessWidget {
       ],
     );
   }
+}
+
+class _TablePile extends StatelessWidget {
+  final double width;
+  final bool compact;
+  final String label;
+  final Widget child;
+  const _TablePile({
+    required this.width,
+    required this.compact,
+    required this.label,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) => Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      SizedBox(
+        width: width,
+        height: width * 1.46 + 8,
+        child: Align(alignment: Alignment.topCenter, child: child),
+      ),
+      SizedBox(height: compact ? 8 : 10),
+      Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      ),
+    ],
+  );
 }
 
 class TableTag extends StatelessWidget {
