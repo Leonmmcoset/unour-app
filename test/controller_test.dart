@@ -88,6 +88,31 @@ Future<AppController> create(FixtureApi api) async {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   test(
+    'accepted snapshots save one local result through the controller',
+    () async {
+      final api = FixtureApi();
+      final app = await create(api);
+      await app.enter(id: 'table');
+      expect(app.history.unsettled, 1);
+      final result = roomData(version: 2);
+      api.snapshot = {
+        ...result,
+        'state': {
+          ...object(result['state']),
+          'phase': 'finished',
+          'winner': 'a',
+        },
+      };
+      await app.refresh();
+      await app.refresh();
+      expect(app.history.completed, 1);
+      expect(app.history.wins, 1);
+      expect(app.history.records.single.frames, hasLength(2));
+      app.closeTable();
+      app.dispose();
+    },
+  );
+  test(
     'uncertain command is not replayed and authoritative state is fetched',
     () async {
       final api = FixtureApi()

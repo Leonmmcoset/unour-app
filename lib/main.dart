@@ -15,6 +15,7 @@ import 'core/live_table.dart';
 import 'core/preferences.dart';
 import 'features/account.dart';
 import 'features/home.dart';
+import 'features/history.dart';
 import 'features/settings.dart';
 import 'features/setup.dart';
 import 'game/design.dart';
@@ -83,6 +84,7 @@ class _UnourAppState extends ConsumerState<UnourApp>
         GoRoute(path: '/', builder: (_, state) => const HomePage()),
         GoRoute(path: '/account', builder: (_, state) => const AccountPage()),
         GoRoute(path: '/settings', builder: (_, state) => const SettingsPage()),
+        GoRoute(path: '/history', builder: (_, state) => const HistoryPage()),
         GoRoute(
           path: '/setup/:mode',
           builder: (_, state) => SetupPage(mode: state.pathParameters['mode']!),

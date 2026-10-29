@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'api.dart';
 import 'feedback.dart';
+import 'match_history.dart';
 import 'models.dart';
 import 'preferences.dart';
 
@@ -24,6 +25,7 @@ bool acceptsSnapshot(Room? current, Room next) =>
 class AppController extends ChangeNotifier {
   final Api api;
   final GameFeedback feedback;
+  final MatchHistory history;
   Account? account;
   Room? room;
   RoomSession? session;
@@ -40,7 +42,14 @@ class AppController extends ChangeNotifier {
   Timer? _poll, _unoTimer, _countdown;
   DateTime? _observedUno;
   final Map<String, int> _declared = {}, _penalized = {};
-  AppController(this.api, this.feedback);
+  AppController(this.api, this.feedback)
+    : history = MatchHistory(feedback.preferences.store) {
+    history.addListener(_historyChanged);
+  }
+  void _historyChanged() {
+    if (!_disposed) notifyListeners();
+  }
+
   String roomPath(String suffix) =>
       'rooms/${Uri.encodeComponent(session!.id)}${suffix.isEmpty ? '' : '/$suffix'}';
   double get unoProgress => _observedUno == null
@@ -51,6 +60,7 @@ class AppController extends ChangeNotifier {
       _window != 0 && room?.me?.uno['id'] == _window && !_unoSending;
   bool get unoSending => _unoSending;
   void changed() {
+    history.selectAccount(account?.id);
     if (!_disposed) notifyListeners();
   }
 
@@ -235,6 +245,8 @@ class AppController extends ChangeNotifier {
     final previous = room;
     room = next;
     roomUpdatedAt = DateTime.now();
+    history.selectAccount(account?.id);
+    history.observe(next, session);
     if (baseline || previous?.round != next.round) {
       _declared.clear();
       _penalized.clear();
@@ -292,6 +304,7 @@ class AppController extends ChangeNotifier {
       if (epoch != _epoch) return;
       _failures++;
       online = false;
+      history.interrupt();
       if (e.status == 404) {
         roomUnavailable = true;
         error = '这个房间已解散或不存在了';
@@ -320,6 +333,7 @@ class AppController extends ChangeNotifier {
       if (epoch == _epoch) {
         online = false;
         _failures++;
+        history.interrupt();
       }
     } finally {
       _reading = false;
@@ -458,6 +472,7 @@ class AppController extends ChangeNotifier {
 
   void setActive(bool value) {
     _active = value;
+    if (!value) history.interrupt();
     _poll?.cancel();
     _cancelUno();
     if (value) {
@@ -469,6 +484,7 @@ class AppController extends ChangeNotifier {
   }
 
   void closeTable() {
+    history.interrupt();
     _epoch++;
     _poll?.cancel();
     _cancelUno();
@@ -488,6 +504,8 @@ class AppController extends ChangeNotifier {
     _epoch++;
     _poll?.cancel();
     _cancelUno();
+    history.removeListener(_historyChanged);
+    history.dispose();
     feedback.dispose();
     super.dispose();
   }

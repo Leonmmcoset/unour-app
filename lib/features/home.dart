@@ -187,6 +187,21 @@ class HomePage extends ConsumerWidget {
                     ),
                   ],
                 ),
+                const SizedBox(height: 14),
+                GamePanel(
+                  padding: EdgeInsets.zero,
+                  child: ListTile(
+                    leading: Icon(Icons.history_rounded, color: colors.primary),
+                    title: const Text('本机战绩'),
+                    subtitle: Text(
+                      app.history.completed == 0
+                          ? '查看这台设备上的牌局记录'
+                          : '${app.history.completed} 局已结算 · ${app.history.wins} 次获胜',
+                    ),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => context.push('/history'),
+                  ),
+                ),
                 ErrorStrip(app.error, onDismiss: app.clearError),
                 if (app.recent.isNotEmpty) ...[
                   const SizedBox(height: 28),
