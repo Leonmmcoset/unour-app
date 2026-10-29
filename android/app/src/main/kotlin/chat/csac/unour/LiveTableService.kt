@@ -108,6 +108,12 @@ class LiveTableService : Service() {
 
     private fun readTable() {
         if (stopped || LiveTableSession.foreground) return
+        val manager = getSystemService(NotificationManager::class.java)
+        if (!manager.areNotificationsEnabled() ||
+            (Build.VERSION.SDK_INT >= 26 && manager.getNotificationChannel(CHANNEL)?.importance == NotificationManager.IMPORTANCE_NONE)) {
+            LiveTableSession.stop(this, clear = true)
+            return
+        }
         val configuration = LiveTableSession.connection ?: return
         val generation = LiveTableSession.generation
         reading = true
