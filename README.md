@@ -43,3 +43,7 @@ Actions → 手动构建 Unour → Run workflow，即可并行构建：
 两份产物位于该次运行的 Artifacts，均在 **3 天后过期**。工作流不需要苹果证书、
 描述文件或签名密钥，不会创建 Release 或自动发布。固定 Flutter 3.47.8，使用官方
 Flutter Git 源码安装；GitHub 官方 Actions 固定到提交版本。
+
+## 许可证
+
+本项目采用 [Apache License 2.0](LICENSE)。
