@@ -4,6 +4,10 @@ Flutter 编写的竖屏 UNO 游戏，支持 Android 和 iOS。默认连接 https
 
 [界面与动效预览](docs/ui.md)
 
+可在「设置 → 后台牌桌」开启系统牌况卡片。Android 支持后台持续通知与 Live Updates，
+iOS 已接入灵动岛／锁屏界面；默认显示最近同步的牌况，后台实时推送待服务端接入。
+使用方式与 APNs 接入约定见 [后台牌桌](docs/live-table.md)。
+
 ## 开发
 
 使用 Flutter stable，执行 `flutter pub get`、`flutter run`。可通过
