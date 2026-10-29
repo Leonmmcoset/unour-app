@@ -674,6 +674,8 @@ class _RoomPageState extends ConsumerState<RoomPage> {
     final selected = hand.where((card) => card.id == _selected).firstOrNull;
     final mine = room.turn == room.you;
     final enabled = !app.busy && app.online && !app.roomUnavailable;
+    final pass = room.allows('pass');
+    final secondaryAction = pass ? 'pass' : 'draw';
     final canPlay =
         selected != null && enabled && room.plays(selected).isNotEmpty;
     final colors = Theme.of(context).colorScheme;
@@ -770,7 +772,7 @@ class _RoomPageState extends ConsumerState<RoomPage> {
             },
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+            padding: const EdgeInsets.symmetric(horizontal: 14),
             child: Column(
               children: [
                 if (reduce)
@@ -783,28 +785,38 @@ class _RoomPageState extends ConsumerState<RoomPage> {
                   ),
                 Row(
                   children: [
-                    PressScale(
-                      child: OutlinedButton.icon(
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size(48, 52),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
+                    Expanded(
+                      flex: 2,
+                      child: PressScale(
+                        child: OutlinedButton.icon(
+                          key: const ValueKey('secondary-action'),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(48, 54),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
                           ),
-                        ),
-                        onPressed: enabled && room.allows('draw')
-                            ? () => app.action('draw')
-                            : null,
-                        icon: const Icon(Icons.add_rounded, size: 19),
-                        label: Text(
-                          integer(room.state['pending_draw']) > 0
-                              ? '摸 ${room.state['pending_draw']} 张'
-                              : '摸一张',
+                          onPressed: enabled && room.allows(secondaryAction)
+                              ? () => app.action(secondaryAction)
+                              : null,
+                          icon: Icon(
+                            pass ? Icons.skip_next_rounded : Icons.add_rounded,
+                            size: 19,
+                          ),
+                          label: Text(
+                            pass
+                                ? '过牌'
+                                : integer(room.state['pending_draw']) > 0
+                                ? '摸 ${room.state['pending_draw']} 张'
+                                : '摸一张',
+                          ),
                         ),
                       ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
+                      flex: 3,
                       child: PressScale(
                         child: FilledButton.icon(
                           key: const ValueKey('play-card'),
@@ -822,38 +834,28 @@ class _RoomPageState extends ConsumerState<RoomPage> {
                     ),
                   ],
                 ),
-                if (room.allows('pass') || room.allows('challenge')) ...[
+                if (room.allows('challenge')) ...[
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 10,
                     runSpacing: 6,
                     alignment: WrapAlignment.center,
                     children: [
-                      if (room.allows('pass'))
-                        TextButton.icon(
-                          onPressed: enabled ? () => app.action('pass') : null,
-                          icon: const Icon(Icons.skip_next_rounded, size: 18),
-                          label: const Text('过牌'),
-                        ),
-                      if (room.allows('challenge'))
-                        TextButton.icon(
-                          onPressed: enabled
-                              ? () async {
-                                  if (await confirm(
-                                    context,
-                                    '质疑这张 +4？',
-                                    '若对方出牌前持有当前颜色，质疑成功；失败则按本桌规则承担额外罚牌。',
-                                  )) {
-                                    app.action('challenge');
-                                  }
+                      TextButton.icon(
+                        onPressed: enabled
+                            ? () async {
+                                if (await confirm(
+                                  context,
+                                  '质疑这张 +4？',
+                                  '若对方出牌前持有当前颜色，质疑成功；失败则按本桌规则承担额外罚牌。',
+                                )) {
+                                  app.action('challenge');
                                 }
-                              : null,
-                          icon: const Icon(
-                            Icons.help_outline_rounded,
-                            size: 18,
-                          ),
-                          label: const Text('质疑 +4'),
-                        ),
+                              }
+                            : null,
+                        icon: const Icon(Icons.help_outline_rounded, size: 18),
+                        label: const Text('质疑 +4'),
+                      ),
                     ],
                   ),
                 ],

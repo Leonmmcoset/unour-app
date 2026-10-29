@@ -17,6 +17,20 @@ class LayoutController extends AppController {
   LayoutController(GamePreferences prefs)
     : super(Api(const FlutterSecureStorage()), GameFeedback(prefs));
   bool showUno = false;
+  final commands = <String>[];
+  Room? actionResponse;
+
+  @override
+  Future<bool> action(String action, [Json payload = const {}]) async {
+    commands.add(action);
+    if (actionResponse != null) {
+      room = actionResponse;
+      actionResponse = null;
+      changed();
+    }
+    return true;
+  }
+
   @override
   bool get unoAvailable => showUno;
   @override
@@ -73,6 +87,7 @@ Future<LayoutController> mountTable(
   Size size = const Size(390, 844),
   bool spectator = false,
   int players = 4,
+  bool reduceMotion = true,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -81,7 +96,7 @@ Future<LayoutController> mountTable(
   SharedPreferences.setMockInitialValues({
     'sound': false,
     'haptics': false,
-    'reduce_motion': true,
+    'reduce_motion': reduceMotion,
   });
   final prefs = GamePreferences(await SharedPreferences.getInstance());
   final app = LayoutController(prefs)
@@ -135,6 +150,92 @@ void main() {
       expect(currentLabel.center.dx, closeTo(current.center.dx, .01));
       expect(tester.takeException(), null);
     });
+
+    for (final reduce in [false, true]) {
+      testWidgets(
+        'draw changes to pass in the same slot without adding scroll at $size (reduce: $reduce)',
+        (tester) async {
+          final app = await mountTable(
+            tester,
+            size: size,
+            reduceMotion: reduce,
+          );
+          final before = app.room!;
+          app.room = Room({
+            ...before.raw,
+            'state': {...before.state, 'turn': 'me'},
+          });
+          app.changed();
+          await tester.pumpAndSettle();
+          final secondary = find.byKey(const ValueKey('secondary-action'));
+          final play = find.byKey(const ValueKey('play-card'));
+          final slotBefore = tester.getRect(secondary);
+          final playBefore = tester.getRect(play);
+          final handBefore = tester.getRect(find.byType(HandStrip));
+          final scroll = tester.state<ScrollableState>(
+            find.byWidgetPredicate(
+              (widget) =>
+                  widget is Scrollable &&
+                  widget.axisDirection == AxisDirection.down,
+            ),
+          );
+          expect(scroll.position.maxScrollExtent, 0);
+          final players = before.players
+              .map(
+                (player) => {
+                  'id': player.id,
+                  'name': player.name,
+                  'hand_count': player.handCount + (player.id == 'me' ? 1 : 0),
+                  if (player.id == 'me')
+                    'hand': [
+                      ...objects(before.state['players']).first['hand'] as List,
+                      {'id': 7, 'color': 'red', 'kind': 'number', 'number': 8},
+                    ],
+                },
+              )
+              .toList();
+          app.actionResponse = Room({
+            ...before.raw,
+            'state': {
+              ...before.state,
+              'turn': 'me',
+              'players': players,
+              'legal_actions': [
+                {'action': 'pass'},
+                {'action': 'play', 'card_id': 7},
+              ],
+            },
+          });
+          await tester.tap(secondary);
+          await tester.pump();
+          expect(app.commands, ['draw']);
+          expect(find.text('摸一张'), findsNothing);
+          expect(find.text('过牌').hitTestable(), findsOneWidget);
+          expect(tester.getRect(secondary), slotBefore);
+          expect(tester.getRect(play), playBefore);
+          expect(tester.getRect(find.byType(HandStrip)), handBefore);
+          expect(scroll.position.maxScrollExtent, 0);
+          await tester.pumpAndSettle();
+          expect(tester.getRect(secondary), slotBefore);
+          expect(tester.getRect(play), playBefore);
+          expect(scroll.position.maxScrollExtent, 0);
+          await tester.tap(secondary);
+          await tester.pumpAndSettle();
+          expect(app.commands, ['draw', 'pass']);
+          app.room = Room({
+            ...before.raw,
+            'state': {...before.state, 'turn': 'me'},
+          });
+          app.changed();
+          await tester.pumpAndSettle();
+          expect(find.text('过牌'), findsNothing);
+          expect(find.text('摸一张'), findsOneWidget);
+          expect(tester.getRect(secondary), slotBefore);
+          expect(scroll.position.maxScrollExtent, 0);
+          expect(tester.takeException(), null);
+        },
+      );
+    }
   }
 
   testWidgets(
