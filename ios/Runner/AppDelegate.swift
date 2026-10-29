@@ -12,5 +12,14 @@ import UIKit
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "LiveTablePlugin") {
+      LiveTablePlugin.register(with: registrar)
+    }
+  }
+
+  override func application(_ app: UIApplication, open url: URL,
+    options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
+    if LiveTablePlugin.open(url) { return true }
+    return super.application(app, open: url, options: options)
   }
 }
