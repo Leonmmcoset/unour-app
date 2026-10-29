@@ -470,7 +470,7 @@ class _TutorialPageState extends ConsumerState<TutorialPage> {
                     key: ValueKey(_unoCalled),
                     style: const TextStyle(
                       fontSize: 24,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
