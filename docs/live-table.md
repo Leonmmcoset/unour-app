@@ -109,3 +109,9 @@ Apple 官方说明：[Live Activities](https://developer.apple.com/documentation
 重复快照合并、旧系统降级、推送令牌作用域、后台 Cookie 轮换、快速前后台切换和未配置推送时的明确状态。测试使用内存响应，不注册账户或创建线上牌桌。
 Android 真机通知提升、后台省电行为、iOS 真机显示和 APNs 仍需手动验收；
 未签名构建通过不能代替推送联调。
+
+2026-10-29，提交 `714bb5c` 的 [Android／iOS 手动构建](https://github.com/Leonmmcoset/unour-app/actions/runs/40865882645)
+均已通过，APK 和未签名 IPA 上传为 Actions 产物，保留至 2026-11-01（UTC）。
+已解包核对 IPA 包含 `Payload/Runner.app/PlugIns/UnourLiveActivity.appex`，
+主应用与扩展版本均为 `1.0.0 (1)`，最低系统分别为 iOS 15.0 与 16.2；
+两者的可执行文件均无代码签名，也未嵌入描述文件。
