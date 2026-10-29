@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../core/controller.dart';
 import '../core/match_history.dart';
@@ -62,9 +63,11 @@ class HistoryPage extends ConsumerWidget {
                               color: colors.onPrimaryContainer,
                             ),
                             const SizedBox(width: 10),
-                            Text(
-                              '这台设备上的牌局',
-                              style: theme.textTheme.titleMedium,
+                            Expanded(
+                              child: Text(
+                                '这台设备上的牌局',
+                                style: theme.textTheme.titleMedium,
+                              ),
                             ),
                           ],
                         ),
@@ -115,7 +118,7 @@ class HistoryPage extends ConsumerWidget {
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  '仅记录本机参与并收到的牌局，按账户保存。保留最近 ${MatchHistory.maxRecords} 局。',
+                  '仅记录本机参与并收到的牌局，按账户保存。最多保留 ${MatchHistory.maxRecords} 局。',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: colors.onSurfaceVariant,
                   ),
@@ -149,7 +152,12 @@ class HistoryPage extends ConsumerWidget {
                     ),
                   ),
                 for (final record in history.records) ...[
-                  MatchResultTile(record: record),
+                  MatchResultTile(
+                    record: record,
+                    onTap: () => context.push(
+                      '/history/${Uri.encodeComponent(record.id)}',
+                    ),
+                  ),
                   const SizedBox(height: 12),
                 ],
               ],

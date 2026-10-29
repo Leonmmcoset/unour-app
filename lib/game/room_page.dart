@@ -175,6 +175,11 @@ class _RoomPageState extends ConsumerState<RoomPage> {
       _details(app.room!);
     } else if (value == 'settings') {
       context.push('/settings');
+    } else if (value == 'review') {
+      final record = app.history.forRoom(app.room!);
+      if (record != null) {
+        context.push('/history/${Uri.encodeComponent(record.id)}');
+      }
     } else if (value == 'home') {
       context.go('/');
     } else {
@@ -264,6 +269,8 @@ class _RoomPageState extends ConsumerState<RoomPage> {
               itemBuilder: (_) => [
                 const PopupMenuItem(value: 'copy', child: Text('复制房间号')),
                 const PopupMenuItem(value: 'details', child: Text('玩家与规则')),
+                if (app.history.forRoom(room) != null)
+                  const PopupMenuItem(value: 'review', child: Text('本局回顾')),
                 const PopupMenuItem(value: 'settings', child: Text('声音与外观')),
                 const PopupMenuItem(value: 'home', child: Text('返回首页，保留座位')),
                 const PopupMenuItem(value: 'leave', child: Text('退出房间')),
@@ -447,6 +454,38 @@ class _RoomPageState extends ConsumerState<RoomPage> {
           style: theme.textTheme.headlineMedium,
         ),
         const SizedBox(height: 24),
+        if (participant)
+          PressScale(
+            child: FilledButton.icon(
+              onPressed: app.busy
+                  ? null
+                  : () => app.action('rematch', {
+                      'agree': !voted,
+                      'round': room.round,
+                      'roster_version': room.rosterVersion,
+                    }),
+              icon: Icon(voted ? Icons.undo_rounded : Icons.replay_rounded),
+              label: Text(voted ? '撤回同意' : '再来一局'),
+            ),
+          ),
+        if (room.isSpectator) _reservation(room, app),
+        const SizedBox(height: 12),
+        Text(
+          '全员同意后自动发牌；名单变化时需重新同意。',
+          textAlign: TextAlign.center,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: colors.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 16),
+        if (record != null) ...[
+          OutlinedButton.icon(
+            onPressed: () => _menu('review', app),
+            icon: const Icon(Icons.history_rounded),
+            label: const Text('回顾这一局'),
+          ),
+          const SizedBox(height: 20),
+        ],
         if (record != null && record.finished) ...[
           MatchHighlights(
             key: ValueKey(record.id),
@@ -508,29 +547,6 @@ class _RoomPageState extends ConsumerState<RoomPage> {
           ),
         ),
         const SizedBox(height: 20),
-        if (participant)
-          PressScale(
-            child: FilledButton.icon(
-              onPressed: app.busy
-                  ? null
-                  : () => app.action('rematch', {
-                      'agree': !voted,
-                      'round': room.round,
-                      'roster_version': room.rosterVersion,
-                    }),
-              icon: Icon(voted ? Icons.undo_rounded : Icons.replay_rounded),
-              label: Text(voted ? '撤回同意' : '再来一局'),
-            ),
-          ),
-        if (room.isSpectator) _reservation(room, app),
-        const SizedBox(height: 12),
-        Text(
-          '全员同意后自动发牌；名单变化时需重新同意。',
-          textAlign: TextAlign.center,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: colors.onSurfaceVariant,
-          ),
-        ),
         TextButton(
           onPressed: () => _menu('leave', app),
           child: const Text('离开牌桌'),
@@ -918,12 +934,3 @@ class _RoomPageState extends ConsumerState<RoomPage> {
     );
   }
 }
-
-String colorName(String color) => switch (color) {
-  'red' => '红色',
-  'blue' => '蓝色',
-  'green' => '绿色',
-  'yellow' => '黄色',
-  'keep' => '保持当前色',
-  _ => '万能',
-};

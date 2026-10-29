@@ -260,4 +260,22 @@ void main() {
     expect(history.records, hasLength(1));
     expect(history.storageError, isNotNull);
   });
+
+  test(
+    'continuous state changes cannot postpone persistence indefinitely',
+    () async {
+      history.observe(observedRoom(), localSession);
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      history.observe(observedRoom(version: 2), localSession);
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      final saved = store.getString(MatchHistory.storageKey('account-a'));
+      expect(saved, isNotNull);
+      expect(
+        object(
+          (object(jsonDecode(saved!))['records'] as List).single,
+        )['frames'],
+        hasLength(2),
+      );
+    },
+  );
 }

@@ -372,11 +372,10 @@ class MatchHistory extends ChangeNotifier {
       _records.removeRange(maxRecords, _records.length);
     }
     _notify();
-    _saveTimer?.cancel();
     if (record.finished) {
       unawaited(flush());
     } else {
-      _saveTimer = Timer(const Duration(milliseconds: 700), () {
+      _saveTimer ??= Timer(const Duration(milliseconds: 700), () {
         unawaited(flush());
       });
     }
@@ -401,6 +400,7 @@ class MatchHistory extends ChangeNotifier {
 
   Future<void> flush() {
     _saveTimer?.cancel();
+    _saveTimer = null;
     final account = _accountId;
     if (account == null) return _writes;
     String encode() => jsonEncode({
@@ -417,6 +417,12 @@ class MatchHistory extends ChangeNotifier {
       try {
         if (!await store.setString(storageKey(account), payload)) {
           throw StateError('History write failed');
+        }
+        if (_accountId == account &&
+            !_disposed &&
+            storageError == '本机记录暂未保存，稍后可重试') {
+          storageError = null;
+          _notify();
         }
       } on Object {
         if (_accountId == account && !_disposed) {

@@ -13,6 +13,15 @@ Color cardColor(String color) => switch (color) {
   _ => const Color(0xff51488a),
 };
 
+String colorName(String color) => switch (color) {
+  'red' => '红色',
+  'blue' => '蓝色',
+  'green' => '绿色',
+  'yellow' => '黄色',
+  'keep' => '保持当前色',
+  _ => '万能',
+};
+
 ThemeData partyTheme(Brightness brightness) {
   final dark = brightness == Brightness.dark;
   final scheme = ColorScheme.fromSeed(

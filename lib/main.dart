@@ -16,6 +16,7 @@ import 'core/preferences.dart';
 import 'features/account.dart';
 import 'features/home.dart';
 import 'features/history.dart';
+import 'features/match_review.dart';
 import 'features/settings.dart';
 import 'features/setup.dart';
 import 'game/design.dart';
@@ -85,6 +86,11 @@ class _UnourAppState extends ConsumerState<UnourApp>
         GoRoute(path: '/account', builder: (_, state) => const AccountPage()),
         GoRoute(path: '/settings', builder: (_, state) => const SettingsPage()),
         GoRoute(path: '/history', builder: (_, state) => const HistoryPage()),
+        GoRoute(
+          path: '/history/:id',
+          builder: (_, state) =>
+              MatchReviewPage(recordId: state.pathParameters['id']!),
+        ),
         GoRoute(
           path: '/setup/:mode',
           builder: (_, state) => SetupPage(mode: state.pathParameters['mode']!),
