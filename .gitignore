@@ -9,6 +9,7 @@ coverage/
 .DS_Store
 android/local.properties
 android/.gradle/
+android/.kotlin/
 android/key.properties
 *.jks
 *.keystore

@@ -104,6 +104,19 @@ class Api {
     await storage.delete(key: 'account_cookies');
   }
 
+  // Passed only to the app's native, in-memory background reader.
+  Json liveTableConnection(RoomSession session) => {
+    'url': Uri.parse(
+      dio.options.baseUrl,
+    ).resolve('rooms/${Uri.encodeComponent(session.id)}').toString(),
+    'accountId': accountId,
+    'token': session.token,
+    'cookie': _cookies.entries.map((e) => '${e.key}=${e.value}').join('; '),
+  };
+
+  Future<void> acceptBackgroundCookies(List<String> headers) =>
+      headers.isEmpty ? Future.value() : _saveCookies(headers);
+
   Future<dynamic> request(
     String path, {
     String method = 'GET',

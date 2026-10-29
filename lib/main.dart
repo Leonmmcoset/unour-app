@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -9,6 +11,7 @@ import 'package:go_router/go_router.dart';
 import 'core/api.dart';
 import 'core/controller.dart';
 import 'core/feedback.dart';
+import 'core/live_table.dart';
 import 'core/preferences.dart';
 import 'features/account.dart';
 import 'features/home.dart';
@@ -54,6 +57,8 @@ class UnourApp extends ConsumerStatefulWidget {
 class _UnourAppState extends ConsumerState<UnourApp>
     with WidgetsBindingObserver {
   late final GoRouter router;
+  late final LiveTableController liveTable;
+  int _lifecycleRevision = 0;
   @override
   void initState() {
     super.initState();
@@ -85,14 +90,53 @@ class _UnourAppState extends ConsumerState<UnourApp>
         GoRoute(path: '/room', builder: (_, state) => const RoomPage()),
       ],
     );
+    liveTable = ref.read(liveTableProvider)..addListener(_openLiveTable);
+    widget.controller.addListener(_openLiveTable);
   }
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) =>
-      widget.controller.setActive(state == AppLifecycleState.resumed);
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final revision = ++_lifecycleRevision;
+    if (state == AppLifecycleState.resumed) {
+      unawaited(
+        liveTable.setForeground(true).then((_) {
+          if (mounted && revision == _lifecycleRevision) {
+            widget.controller.setActive(true);
+          }
+        }),
+      );
+    } else {
+      widget.controller.setActive(false);
+      unawaited(liveTable.setForeground(false));
+    }
+  }
+
+  void _openLiveTable() {
+    final app = widget.controller;
+    if (app.loading ||
+        app.busy ||
+        app.account == null ||
+        liveTable.pendingOpen == null) {
+      return;
+    }
+    final open = liveTable.takeOpen()!;
+    final id = '${open['roomId'] ?? ''}';
+    if (app.room?.id == id) {
+      router.go('/room');
+    } else if (app.recent.any((session) => session.id == id)) {
+      unawaited(
+        app.enter(id: id, spectate: open['spectator'] == true).then((ok) {
+          if (ok && mounted) router.go('/room');
+        }),
+      );
+    }
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    liveTable.removeListener(_openLiveTable);
+    widget.controller.removeListener(_openLiveTable);
     router.dispose();
     super.dispose();
   }

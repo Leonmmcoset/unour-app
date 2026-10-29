@@ -34,6 +34,7 @@ class AppController extends ChangeNotifier {
       online = true,
       roomUnavailable = false;
   String? error, notice;
+  DateTime? roomUpdatedAt;
   bool _active = true, _disposed = false, _reading = false, _unoSending = false;
   int _epoch = 0, _failures = 0, _window = 0;
   Timer? _poll, _unoTimer, _countdown;
@@ -233,6 +234,7 @@ class AppController extends ChangeNotifier {
     if (!acceptsSnapshot(room, next)) return;
     final previous = room;
     room = next;
+    roomUpdatedAt = DateTime.now();
     if (baseline || previous?.round != next.round) {
       _declared.clear();
       _penalized.clear();
@@ -471,6 +473,7 @@ class AppController extends ChangeNotifier {
     _poll?.cancel();
     _cancelUno();
     room = null;
+    roomUpdatedAt = null;
     session = null;
     roomUnavailable = false;
     _declared.clear();

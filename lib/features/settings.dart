@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/controller.dart';
+import '../core/live_table.dart';
 import '../game/design.dart';
 import '../game/motion.dart';
 
@@ -11,6 +12,7 @@ class SettingsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final prefs = ref.watch(preferencesProvider);
+    final live = ref.watch(liveTableProvider);
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(title: const Text('设置')),
@@ -91,6 +93,26 @@ class SettingsPage extends ConsumerWidget {
                         value: prefs.reduceMotion,
                         onChanged: (v) => prefs.toggle('reduce_motion', v),
                       ),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 20),
+                        child: Divider(),
+                      ),
+                      SwitchListTile(
+                        secondary: const Icon(
+                          Icons.notifications_active_outlined,
+                        ),
+                        title: const Text('后台牌桌'),
+                        subtitle: Text(live.description),
+                        value: prefs.liveTable,
+                        onChanged: live.supported || prefs.liveTable
+                            ? live.setEnabled
+                            : null,
+                      ),
+                      if (live.message.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                          child: Text(live.message),
+                        ),
                     ],
                   ),
                 ),
