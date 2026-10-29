@@ -197,6 +197,7 @@
 				183CA66F03B44AB8EBA4E122 /* UnourTableAttributes.swift */,
 			);
 			name = Shared;
+			path = Shared;
 			sourceTree = "<group>";
 		};
 		DC5112AD78BD1D097C3023D6 /* UnourLiveActivity */ = {
