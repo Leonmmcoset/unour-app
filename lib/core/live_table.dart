@@ -235,6 +235,9 @@ class LiveTableController extends ChangeNotifier {
         session == null ||
         account == null ||
         token['roomId'] != session.id ||
+        token['round'] != app.room?.round ||
+        '${token['activityId'] ?? ''}'.isEmpty ||
+        '${token['pushToken'] ?? ''}'.isEmpty ||
         !allowed) {
       return;
     }

@@ -14,6 +14,7 @@ class MainActivity : FlutterActivity() {
     private var channel: MethodChannel? = null
     private var permissionResult: MethodChannel.Result? = null
     private var ready = false
+    private var activityForeground = false
 
     private fun allowed(): Boolean =
         getSystemService(NotificationManager::class.java).areNotificationsEnabled() &&
@@ -68,14 +69,14 @@ class MainActivity : FlutterActivity() {
                             connection.put("cookie", LiveTableSession.connection?.optString("cookie") ?: "")
                         }
                         LiveTableSession.connection = connection
-                        LiveTableSession.foreground = arguments["foreground"] != false
+                        LiveTableSession.foreground = activityForeground && arguments["foreground"] != false
                         if (!LiveTableSession.foreground) LiveTableSession.start(this@MainActivity)
                         result.success(null)
                     }
                     "foreground" -> {
                         val foreground = call.argument<Boolean>("value") != false
-                        LiveTableSession.foreground = foreground
-                        if (foreground) LiveTableSession.stop(this@MainActivity)
+                        LiveTableSession.foreground = foreground && activityForeground
+                        if (LiveTableSession.foreground) LiveTableSession.stop(this@MainActivity)
                         else LiveTableSession.start(this@MainActivity)
                         val cookies = if (foreground) LiveTableSession.cookies.values.toList() else emptyList()
                         if (foreground) LiveTableSession.cookies.clear()
@@ -92,6 +93,7 @@ class MainActivity : FlutterActivity() {
     }
 
     override fun onPause() {
+        activityForeground = false
         LiveTableSession.foreground = false
         LiveTableSession.start(this)
         super.onPause()
@@ -99,6 +101,7 @@ class MainActivity : FlutterActivity() {
 
     override fun onResume() {
         super.onResume()
+        activityForeground = true
         LiveTableSession.foreground = true
         LiveTableSession.stop(this)
     }
