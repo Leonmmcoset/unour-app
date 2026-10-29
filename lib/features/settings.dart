@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../core/controller.dart';
 import '../core/live_table.dart';
@@ -115,6 +116,17 @@ class SettingsPage extends ConsumerWidget {
                         ),
                     ],
                   ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              GamePanel(
+                padding: EdgeInsets.zero,
+                child: ListTile(
+                  leading: const Icon(Icons.school_outlined),
+                  title: const Text('新手引导'),
+                  subtitle: const Text('重看出牌、选色和 UNO 的操作'),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => context.push('/learn'),
                 ),
               ),
               const SizedBox(height: 32),

@@ -12,6 +12,7 @@ class HomePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final app = ref.watch(appProvider), user = app.account!;
+    final prefs = ref.watch(preferencesProvider);
     final theme = Theme.of(context), colors = theme.colorScheme;
     return Scaffold(
       appBar: AppBar(
@@ -94,6 +95,52 @@ class HomePage extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 16),
+                ],
+                if (!prefs.tutorialDismissed &&
+                    app.room == null &&
+                    app.recent.isEmpty &&
+                    app.history.records.isEmpty) ...[
+                  const SizedBox(height: 14),
+                  GamePanel(
+                    color: colors.tertiaryContainer,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('第一次玩？', style: theme.textTheme.titleMedium),
+                        const SizedBox(height: 6),
+                        const Text('跟着牌面试试出牌、摸牌和喊 UNO。'),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 4,
+                          children: [
+                            FilledButton.tonalIcon(
+                              onPressed: () => context.push('/learn'),
+                              icon: const Icon(Icons.school_outlined),
+                              label: const Text('看看怎么玩'),
+                            ),
+                            TextButton(
+                              onPressed: () async {
+                                try {
+                                  await prefs.finishTutorial();
+                                } on Object {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('暂未保存，请稍后再试'),
+                                      ),
+                                    );
+                                  }
+                                }
+                              },
+                              child: const Text('我会玩了'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 18),
                 ],
                 MotionEntrance(
                   delay: 70,

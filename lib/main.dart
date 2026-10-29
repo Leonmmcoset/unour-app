@@ -19,6 +19,7 @@ import 'features/history.dart';
 import 'features/match_review.dart';
 import 'features/settings.dart';
 import 'features/setup.dart';
+import 'features/tutorial.dart';
 import 'game/design.dart';
 import 'game/room_page.dart';
 
@@ -69,6 +70,7 @@ class _UnourAppState extends ConsumerState<UnourApp>
       refreshListenable: widget.controller,
       redirect: (context, state) {
         final app = widget.controller, path = state.uri.path;
+        if (path == '/learn') return null;
         if (app.loading) return path == '/loading' ? null : '/loading';
         if (app.account == null) return path == '/login' ? null : '/login';
         if (path == '/login' || path == '/loading') return '/';
@@ -82,6 +84,7 @@ class _UnourAppState extends ConsumerState<UnourApp>
               const Scaffold(body: Center(child: CircularProgressIndicator())),
         ),
         GoRoute(path: '/login', builder: (_, state) => const LoginPage()),
+        GoRoute(path: '/learn', builder: (_, state) => const TutorialPage()),
         GoRoute(path: '/', builder: (_, state) => const HomePage()),
         GoRoute(path: '/account', builder: (_, state) => const AccountPage()),
         GoRoute(path: '/settings', builder: (_, state) => const SettingsPage()),

@@ -166,6 +166,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 12),
+                    TextButton.icon(
+                      onPressed: () => context.push('/learn'),
+                      icon: const Icon(Icons.school_outlined, size: 19),
+                      label: const Text('第一次玩？看看怎么玩'),
+                    ),
                   ],
                 ),
               ),
