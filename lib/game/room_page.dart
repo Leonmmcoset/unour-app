@@ -10,6 +10,7 @@ import '../core/models.dart';
 import 'design.dart';
 import 'hand_strip.dart';
 import 'motion.dart';
+import 'round_summary.dart';
 import 'table_widgets.dart';
 
 class RoomPage extends ConsumerStatefulWidget {
@@ -425,30 +426,15 @@ class _RoomPageState extends ConsumerState<RoomPage> {
     final participant =
         (!room.isSpectator && !room.departed.contains(room.you)) || reserved;
     final theme = Theme.of(context), colors = theme.colorScheme;
+    final record = app.history.forRoom(room);
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
       children: [
         SizedBox(
           height: 148,
-          child: RoundCelebration(
+          child: SettlementEmblem(
             key: ValueKey((room.id, room.round, winner)),
-            child: Center(
-              child: Container(
-                width: 92,
-                height: 92,
-                decoration: BoxDecoration(
-                  color: cardColor('yellow').withValues(alpha: .14),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  winner.isEmpty
-                      ? Icons.style_rounded
-                      : Icons.emoji_events_rounded,
-                  size: 52,
-                  color: cardColor('yellow'),
-                ),
-              ),
-            ),
+            hasWinner: winner.isNotEmpty,
           ),
         ),
         Text(
@@ -461,6 +447,14 @@ class _RoomPageState extends ConsumerState<RoomPage> {
           style: theme.textTheme.headlineMedium,
         ),
         const SizedBox(height: 24),
+        if (record != null && record.finished) ...[
+          MatchHighlights(
+            key: ValueKey(record.id),
+            record: record,
+            animate: true,
+          ),
+          const SizedBox(height: 24),
+        ],
         GamePanel(
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: Column(
