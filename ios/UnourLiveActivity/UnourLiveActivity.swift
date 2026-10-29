@@ -32,7 +32,7 @@ struct UnourTableLiveActivity: Widget {
                 }
             } compactLeading: {
                 Image(systemName: stale(context) ? "clock" : context.state.isYourTurn ? "hand.point.up.left.fill" : "rectangle.on.rectangle")
-                    .foregroundStyle(stale(context) ? .secondary : tint(context.state.activeColor))
+                    .foregroundStyle(stale(context) ? .secondary : tableTint(context.state.activeColor))
                     .accessibilityLabel(stale(context) ? "牌况待刷新" : "Unour 牌桌")
             } compactTrailing: {
                 Text(stale(context) ? "…" : context.state.isYourTurn ? "你" : context.state.symbol)
@@ -40,10 +40,10 @@ struct UnourTableLiveActivity: Widget {
                     .foregroundStyle(stale(context) ? .secondary : .primary)
             } minimal: {
                 Image(systemName: stale(context) ? "clock" : "rectangle.on.rectangle")
-                    .foregroundStyle(stale(context) ? .secondary : tint(context.state.activeColor))
+                    .foregroundStyle(stale(context) ? .secondary : tableTint(context.state.activeColor))
             }
             .widgetURL(tableURL(context.attributes))
-            .keylineTint(tint(context.state.activeColor))
+            .keylineTint(tableTint(context.state.activeColor))
         }
     }
 }
@@ -68,7 +68,7 @@ private struct TableActivityView: View {
                 Text(state.symbol)
                     .font(.title2.bold())
                     .frame(minWidth: 34, minHeight: 38)
-                    .background(tint(state.activeColor).opacity(0.25), in: RoundedRectangle(cornerRadius: 8))
+                    .background(tableTint(state.activeColor).opacity(0.25), in: RoundedRectangle(cornerRadius: 8))
                     .accessibilityLabel(state.topCard)
                 VStack(alignment: .leading, spacing: 3) {
                     Text("\(state.topCard) · 当前\(colorName(state.activeColor))")
@@ -119,7 +119,7 @@ private func colorName(_ value: String) -> String {
     }
 }
 
-private func tint(_ value: String) -> Color {
+private func tableTint(_ value: String) -> Color {
     switch value {
     case "red": return Color(red: 0.95, green: 0.35, blue: 0.38)
     case "yellow": return Color(red: 0.98, green: 0.78, blue: 0.25)

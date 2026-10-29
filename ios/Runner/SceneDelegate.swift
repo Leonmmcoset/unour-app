@@ -1,5 +1,6 @@
 import Flutter
 import UIKit
+import UIKit
 
 class SceneDelegate: FlutterSceneDelegate {
   override func scene(_ scene: UIScene, willConnectTo session: UISceneSession,
